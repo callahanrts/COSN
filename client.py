@@ -8,6 +8,8 @@ import readline
 HOST = str(sys.argv[1])
 PORT = int(sys.argv[2])
 USERNAME = str(sys.argv[3])
+STATUS = 0
+MESSAGE = 1
 
 client_socket = socket(AF_INET, SOCK_DGRAM)
 tcp_socket = socket(AF_INET, SOCK_STREAM)
@@ -17,8 +19,8 @@ tcp_socket = socket(AF_INET, SOCK_STREAM)
 register = ["REGISTER", HOST, PORT, USERNAME] # Response => ACK
 query    = ["QUERY", "1"]                     # Response => LOCATION
 logout   = ["LOGOUT", USERNAME]               # Response => none  
-ping     = ["PING", ]                         # Response => PONG
-pong     = ["PONG", ]                         # Response => none
+ping     = ["PING", "hello"]                  # Response => PONG
+pong     = ["PONG", "hello"]                  # Response => none
 
 initial_load = True
 
@@ -38,7 +40,7 @@ def list_commands():
   print("LOGOUT")
 
 def chat_manager(): 
-  query[1] = str(input("username: "))
+  query[MESSAGE] = str(input("username: "))
   client_socket.sendto(pickle.dumps(query), ("",9000))
 
   recv_data, addr = client_socket.recvfrom(1024)
@@ -46,7 +48,7 @@ def chat_manager():
 
   s = socket(AF_INET, SOCK_STREAM)
   s.connect((data[2], int(data[3])))
-  s.send(pickle.dumps(["PING", "Chatting with " + query[1] ]))
+  s.send(pickle.dumps(ping)
 
   recv_data, addr = s.recvfrom(1024)
 
@@ -58,17 +60,18 @@ def peer_communication_thread():
   tcp_socket.bind((HOST, PORT))
   tcp_socket.listen(1024)
 
-  while 1:
+  while True:
     client_socket, addr = tcp_socket.accept()
 
     recv_data, addr = client_socket.recvfrom(1024)
     data = pickle.loads(recv_data) 
     
-    if data[0] == "PING":
-      reply = ["PONG", "User available"]
+    if data[STATUS] == "PING":
+      pong[MESSAGE] = "User available"
+      reply = pong
 
     else:
-      print("received data:", data[1])
+      print("received data:", data[MESSAGE])
       reply = ["OK", str(input("reply: "))]
 
     return_message = pickle.dumps(reply)
@@ -106,8 +109,8 @@ def server_communication_thread():
 
   client_socket.close()
 
-server_comm = threading.Thread(target=server_communication_thread)
-peer_comm = threading.Thread(target=peer_communication_thread)
+server_comm = threading.Thread(target = server_communication_thread)
+peer_comm = threading.Thread(target = peer_communication_thread)
 
 server_comm.start()
 peer_comm.start()
