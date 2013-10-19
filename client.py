@@ -8,6 +8,7 @@ import readline
 HOST = str(sys.argv[1])
 PORT = int(sys.argv[2])
 USERNAME = str(sys.argv[3])
+SERVER_ADDR = ("", 9000)
 STATUS = 0
 MESSAGE = 1
 
@@ -24,24 +25,35 @@ pong     = ["PONG", "hello"]                  # Response => none
 
 initial_load = True
 
+##
+# Client-Server Commands
+##
 def register_user(): 
-  client_socket.sendto(pickle.dumps(register), ("localhost",9000))
+  client_socket.sendto(pickle.dumps(register), SERVER_ADDR)
 
 def query_user(): 
-  query[1] = str(input("Enter a username: "))
-  client_socket.sendto(pickle.dumps(query), ("localhost",9000))
+  query[1] = str(input("username: "))
+  client_socket.sendto(pickle.dumps(query), SERVER_ADDR)
 
 def logout_user(): 
-  client_socket.sendto(pickle.dumps(logout), ("localhost",9000))
+  client_socket.sendto(pickle.dumps(logout), SERVER_ADDR)
 
 def list_commands(): 
   print("REGISTER")
   print("QUERY")
   print("LOGOUT")
 
+##
+# P2P Commands
+##
+def ping_user():
+  pong[MESSAGE] = "User available"
+  return pong
+
+def pong_response(): 
+
 def chat_manager(): 
-  query[MESSAGE] = str(input("username: "))
-  client_socket.sendto(pickle.dumps(query), ("",9000))
+  query()
 
   recv_data, addr = client_socket.recvfrom(1024)
   data = pickle.loads(recv_data) 
@@ -67,8 +79,7 @@ def peer_communication_thread():
     data = pickle.loads(recv_data) 
     
     if data[STATUS] == "PING":
-      pong[MESSAGE] = "User available"
-      reply = pong
+      reply = ping_user()
 
     else:
       print("received data:", data[MESSAGE])
