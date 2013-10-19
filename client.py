@@ -3,13 +3,15 @@ from socket import *
 import pickle
 import sys
 import threading
+import readline
 
 HOST = str(sys.argv[1])
 PORT = int(sys.argv[2])
 USERNAME = str(sys.argv[3])
 
 client_socket = socket(AF_INET, SOCK_DGRAM)
-client_socket.bind((HOST, PORT))
+tcp_socket = socket(AF_INET, SOCK_STREAM)
+
 
 # Commands
 register = ["REGISTER", HOST, PORT, USERNAME] # Response => ACK
@@ -35,18 +37,16 @@ def list_commands():
   print("QUERY")
   print("LOGOUT")
 
-def chat(): 
+def chat_manager(): 
   query[1] = str(input("username: "))
   client_socket.sendto(pickle.dumps(query), ("",9000))
 
   recv_data, addr = client_socket.recvfrom(1024)
   data = pickle.loads(recv_data) 
 
-  MESSAGE = "Hello, World!"
-
   s = socket(AF_INET, SOCK_STREAM)
   s.connect((data[2], int(data[3])))
-  s.send(pickle.dumps(MESSAGE))
+  s.send(pickle.dumps(["PING", "Chatting with " + query[1] ]))
 
   recv_data, addr = s.recvfrom(1024)
 
@@ -55,25 +55,29 @@ def chat():
   s.close()
 
 def peer_communication_thread(): 
-  tcp_socket = socket(AF_INET, SOCK_STREAM)
   tcp_socket.bind((HOST, PORT))
   tcp_socket.listen(1024)
 
   while 1:
     client_socket, addr = tcp_socket.accept()
-    print('Connection address:', addr)
 
     recv_data, addr = client_socket.recvfrom(1024)
     data = pickle.loads(recv_data) 
     
-    print("received data:", data)
-    reply = str(input("reply: "))
+    if data[0] == "PING":
+      reply = ["PONG", "User available"]
+
+    else:
+      print("received data:", data[1])
+      reply = ["OK", str(input("reply: "))]
+
     return_message = pickle.dumps(reply)
     client_socket.send(return_message)
 
     client_socket.close()
 
 def server_communication_thread(): 
+  client_socket.bind((HOST, PORT))
   while True:
     command = input("Enter a command: ").upper()
     if command == "REGISTER":
@@ -89,17 +93,16 @@ def server_communication_thread():
       logout_user()
 
     elif command == "CHAT":
-      chat()
-      chat_finished = True
+      chat_manager()
+      break
 
     else:
       print("ERROR: command not recognized")
       continue
 
-    if not chat_finished:
-      recv_data, addr = client_socket.recvfrom(1024)
-      data = pickle.loads(recv_data) 
-      print(data)
+    recv_data, addr = client_socket.recvfrom(1024)
+    data = pickle.loads(recv_data) 
+    print(data)
 
   client_socket.close()
 
