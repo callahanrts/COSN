@@ -26,7 +26,7 @@ while True:
 
   # Register Command
   if command == "REGISTER":
-    cursor = conn.execute("SELECT * FROM online_users WHERE username = ? LIMIT 1", (request[3],) )
+    cursor = conn.execute("SELECT * FROM online_users WHERE username = ? LIMIT 1", [request[3]] )
     exists = False
     for row in cursor:
       if row[0]:
@@ -35,14 +35,14 @@ while True:
       print("User is already online")
       server_socket.sendto(pickle.dumps(["ACK", row[0], row[1], row[2], row[3]]), address)
     else:
-      conn.execute("INSERT INTO online_users(id, ip_address, port, username) VALUES(NULL, ?, ?, ?)", (request[1], request[2], request[3]))
+      conn.execute("INSERT INTO online_users(id, ip_address, port, username) VALUES(NULL, ?, ?, ?)", [request[1], request[2], request[3]])
       conn.commit()
       print("User has been registered")
       server_socket.sendto(pickle.dumps(["ACK", request[1], request[2], request[3]]), address)
   
   # Query Command
   elif command == "QUERY":
-    cursor = conn.execute("SELECT * FROM online_users WHERE username = ? LIMIT 1", (str(request[1]),))
+    cursor = conn.execute("SELECT * FROM online_users WHERE username = ? LIMIT 1", [str(request[1])])
     exists = False
     for row in cursor:
       if row[0]:
@@ -56,7 +56,7 @@ while True:
 
   # Logout Command
   elif command == "LOGOUT":
-    conn.execute("DELETE FROM online_users WHERE id = ?", request[1])
+    conn.execute("DELETE FROM online_users WHERE username = ?", [request[1]])
     server_socket.sendto(pickle.dumps(["User was logged out successully"]), address)
     conn.commit()
     print("User logged out")

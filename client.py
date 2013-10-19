@@ -2,23 +2,67 @@ from array import *
 from socket import *
 import pickle
 import sys
+import threading
 
-UDP_HOST = sys.argv[1]
-UDP_PORT = int(sys.argv[2])
+HOST = str(sys.argv[1])
+PORT = int(sys.argv[2])
 USERNAME = str(sys.argv[3])
-print(UDP_HOST)
-print(UDP_PORT)
-print(USERNAME)
-client_socket = socket(AF_INET, SOCK_DGRAM)
-client_socket.bind((UDP_HOST, UDP_PORT))
 
+client_socket = socket(AF_INET, SOCK_DGRAM)
+client_socket.bind((HOST, PORT))
 
 # Commands
-register = ["REGISTER", "", "9002", USERNAME] # Response => ACK
-query    = ["QUERY", "1"]                # Response => LOCATION
+register = ["REGISTER", HOST, PORT, USERNAME] # Response => ACK
+query    = ["QUERY", "1"]                     # Response => LOCATION
 logout   = ["LOGOUT", USERNAME]
+ping     = ["PING", ]                         # Response => PONG
+pong     = ["PONG", ]
 
 initial_load = True
+
+def listen_for_friends (val):
+  if val == "WAIT":
+    BUFFER_SIZE = 20  # Normally 1024, but we want fast response
+
+    tcp_socket = socket(AF_INET, SOCK_STREAM)
+    tcp_socket.bind((HOST, PORT))
+    tcp_socket.listen(1024)
+ 
+    conn, addr = tcp_socket.accept()
+    print('Connection address:', addr)
+    
+    recv_data, addr = conn.recvfrom(1024)
+    data = pickle.loads(recv_data) 
+      
+    print("received data:", data)
+    conn.close()
+    # return_message = "GOT IT"
+    # conn.send(pickle.dump(return_message))  # echo
+    # conn.close()
+
+  else: 
+    query[1] = str(input("username: "))
+    client_socket.sendto(pickle.dumps(query), ("localhost",9000))
+
+    recv_data, addr = client_socket.recvfrom(1024)
+    data = pickle.loads(recv_data) 
+
+    BUFFER_SIZE = 1024
+    MESSAGE = "Hello, World!"
+
+    s = socket(AF_INET, SOCK_STREAM)
+    s.connect((data[2], int(data[3])))
+    s.send(pickle.dumps(MESSAGE))
+    recv_data, addr = s.recvfrom(BUFFER_SIZE)
+    data = pickle.loads(recv_data) 
+    print(data)
+    s.close()
+   
+  print("received data:", data)
+
+# def query ():
+#   query[1] = str(input("Enter a username: "))
+  # client_socket.sendto(pickle.dumps(query), ("localhost",9000))
 
 while True:
   command = input("Enter a command: ").upper()
@@ -38,6 +82,9 @@ while True:
   elif command == "LOGOUT":
     client_socket.sendto(pickle.dumps(logout), ("localhost",9000))
 
+  elif command == "CHAT":
+    listen_for_friends(input("CONNECT or WAIT: ").upper())
+
   else:
     print("ERROR: command not recognized")
     continue
@@ -48,4 +95,3 @@ while True:
   print(data)
 
 client_socket.close()
-
