@@ -23,10 +23,11 @@ logout   = ["LOGOUT", USERNAME]               # Response => none
 down     = ["DOWN", USERNAME]
 
 # P2P Command Strings
-ping     = ["PING", "user", "ip", "port"]                  # Response => PONG
+ping     = ["PING", "user", "ip", "port"]     # Response => PONG
 pong     = ["PONG", "user", "ip", "port"]     # Response => none
 friend   = ["FRIEND", ""]                     # Response => CONFIRM
-confirm  = ["CONFIRM", USERNAME]                    # Response => none
+confirm  = ["CONFIRM", USERNAME]              # Response => none
+busy     = ["BUSY", USERNAME]                 # Response => none
 
 initial_load = True
 
@@ -132,7 +133,11 @@ def peer_communication_thread():
 
     recv_data, addr = client_socket.recvfrom(1024)
     data = pickle.loads(recv_data) 
-    
+
+    if chatting: 
+      client_socket.send(pickle.dumps(busy))
+      continue
+      
     if data[STATUS] == "PING":
       reply = pong_user()
 
