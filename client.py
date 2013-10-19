@@ -23,10 +23,10 @@ logout   = ["LOGOUT", USERNAME]               # Response => none
 down     = ["DOWN", USERNAME]
 
 # P2P Command Strings
-ping     = ["PING", "hello"]                  # Response => PONG
-pong     = ["PONG", "hello"]                  # Response => none
+ping     = ["PING", "user", "ip", "port"]                  # Response => PONG
+pong     = ["PONG", "user", "ip", "port"]     # Response => none
 friend   = ["FRIEND", ""]                     # Response => CONFIRM
-confirm  = ["CONFIRM", ""]                    # Response => none
+confirm  = ["CONFIRM", USERNAME]                    # Response => none
 
 initial_load = True
 
@@ -36,9 +36,12 @@ initial_load = True
 def register_user(): 
   return register
 
-def query_user(): 
-  query[MESSAGE] = str(input("username: "))
-  return query
+def query_user(username): 
+  query[MESSAGE] = username
+  client_socket.sendto(pickle.dumps(query), SERVER_ADDR)
+  recv_data, addr = client_socket.recvfrom(1024)
+  data = pickle.loads(recv_data) 
+  return data
 
 def logout_user(): 
   return logout
@@ -55,29 +58,31 @@ def list_commands():
 ##
 # P2P Commands
 ##
-def ping_user(peer_connection, username):
-  try:  
-    peer_connection.send(pickle.dumps(ping))  
-  except timeouterror: 
-    down_user(username)
+def ping_user(user):
+  ping[MESSAGE] = user[MESSAGE]
+  ping[2] = user[2]
+  ping[3] = user[3]
+  return ping
 
 def pong_user():
+  pong[MESSAGE] = USERNAME
+  pong[2] = HOST
+  pong[3] = PORT
   return pong
 
-def befriend_user(peer_connection, username):
-  try:  
-    peer_connection.send(pickle.dumps(friend))  
-  except timeouterror: 
-    down_user(username)
-
-
+def befriend_user(user):
+  data = query_user(user[4])
+  if data[0] == "LOCATION": 
+    friend[MESSAGE] = data[4]
+    return friend
+  else: 
+    return False
 
 def chat_manager(): 
   print("Opened chat manager choose friend: ") # if friends list friends then query for availability
   # else prompt for friend to be added
-  query_user()
-  recv_data, addr = client_socket.recvfrom(1024)
-  data = pickle.loads(recv_data) 
+  data = query_user(input("username: "))
+
   s = socket(AF_INET, SOCK_STREAM)  
   try: 
     s.connect((data[2], int(data[3])))
@@ -91,18 +96,26 @@ def chat_manager():
     command = input("chat command: ").upper()
 
     if command == "PING":  
-      send_message = ping_user(s, query[MESSAGE])
+      send_message = ping_user(data)
 
     elif command == "FRIEND": 
-      befriend_user(s, query[MESSAGE])
+      send_message = befriend_user(data)
+      # if not send_message:
+      #   down_user(query[MESSAGE])
+      #   continue
 
     else:
       print("command not found")
       continue
 
+    try:  
+      s.send(pickle.dumps(send_message))  
+    except timeout: 
+      down_user(query[MESSAGE])
+
     recv_data, addr = s.recvfrom(1024)
     data = pickle.loads(recv_data) 
-    print("data")
+    print(data)
 
   s.close()
 
@@ -123,6 +136,9 @@ def peer_communication_thread():
     if data[STATUS] == "PING":
       reply = pong_user()
 
+    elif data[STATUS] == "FRIEND":
+      reply = confirm
+
     else:
       print("received data:", data[MESSAGE])
       reply = ["OK", str(input("reply: "))]
@@ -141,7 +157,8 @@ def server_communication_thread():
       send_message = register_user()
 
     elif command == "QUERY":
-      send_message = query_user()
+      print(query_user(str(input("username: "))))
+      continue
 
     elif command == "LIST":
       send_message = list_commands()

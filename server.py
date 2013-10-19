@@ -49,7 +49,7 @@ def query_user():
     return ["Error", "User was not found"]
 
 def remove_user_from_table(username): 
-  conn.execute("DELETE FROM online_users WHERE username = ?", username])
+  conn.execute("DELETE FROM online_users WHERE username = ?", [username])
   conn.commit()
 
 def logout_user(username): 
