@@ -16,10 +16,13 @@ client_socket = socket(AF_INET, SOCK_DGRAM)
 tcp_socket = socket(AF_INET, SOCK_STREAM)
 
 
-# Commands
+# Client-Server Command Strings
 register = ["REGISTER", HOST, PORT, USERNAME] # Response => ACK
 query    = ["QUERY", "1"]                     # Response => LOCATION
 logout   = ["LOGOUT", USERNAME]               # Response => none  
+down     = ["DOWN", USERNAME]
+
+# P2P Command Strings
 ping     = ["PING", "hello"]                  # Response => PONG
 pong     = ["PONG", "hello"]                  # Response => none
 
@@ -32,11 +35,15 @@ def register_user():
   client_socket.sendto(pickle.dumps(register), SERVER_ADDR)
 
 def query_user(): 
-  query[1] = str(input("username: "))
+  query[MESSAGE] = str(input("username: "))
   client_socket.sendto(pickle.dumps(query), SERVER_ADDR)
 
 def logout_user(): 
   client_socket.sendto(pickle.dumps(logout), SERVER_ADDR)
+
+def down_user(username): # User should not be able to call this manually
+  down[MESSAGE] = username
+  client_socket.sendto(pickle.dumps(down), SERVER_ADDR)
 
 def list_commands(): 
   print("REGISTER")
@@ -46,26 +53,53 @@ def list_commands():
 ##
 # P2P Commands
 ##
-def ping_user():
-  pong[MESSAGE] = "User available"
-  return pong
+def ping_user(peer_connection, username):
+  try:  
+    peer_connection.send(pickle.dumps(ping))  
+  except timeouterror: 
+    user_down(username)
+    return [False, "User is unavailable-connection timed out"]
 
-def pong_response(): 
+  recv_data, addr = peer_connection.recvfrom(1024)
+  data = pickle.loads(recv_data) 
+
+  if data[STATUS] == "OK": 
+    return [True, data[MESSAGE]]
+
+  # else: 
+  #   return [False, data[MESSAGE]]
+
+# def pong_response(): 
+#   return None
 
 def chat_manager(): 
-  query()
-
+  print("Opened chat manager choose friend: ") # if friends list friends then query for availability
+  # else prompt for friend to be added
+  query_user()
   recv_data, addr = client_socket.recvfrom(1024)
   data = pickle.loads(recv_data) 
+  s = socket(AF_INET, SOCK_STREAM)  
+  try: 
+    s.connect((data[2], int(data[3])))
+  except: 
+    print("User is offline")
+    down_user(query[MESSAGE])
+    chat_manager()
+    return
 
-  s = socket(AF_INET, SOCK_STREAM)
-  s.connect((data[2], int(data[3])))
-  s.send(pickle.dumps(ping)
+  while True:
+    command = input("chat command: ")
 
-  recv_data, addr = s.recvfrom(1024)
+    if command == "PING":  
+      success = ping_user(s, query[MESSAGE])
+      if success[STATUS]: continue 
 
-  data = pickle.loads(recv_data) 
-  print(data)
+    s.send(pickle.dumps(user_message))
+
+    some_data, addr = s.recvfrom(1024)
+    data = pickle.loads(some_data) 
+    print(data)
+
   s.close()
 
 def peer_communication_thread(): 
@@ -87,8 +121,9 @@ def peer_communication_thread():
 
     return_message = pickle.dumps(reply)
     client_socket.send(return_message)
-
     client_socket.close()
+
+  tcp_socket.close()
 
 def server_communication_thread(): 
   client_socket.bind((HOST, PORT))
