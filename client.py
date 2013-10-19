@@ -2,7 +2,11 @@ from array import *
 from socket import *
 import pickle
 import sys
-import threading
+
+try:    
+    import thread 
+except ImportError:
+    import _thread as thread #Py3K changed it.
 
 HOST = str(sys.argv[1])
 PORT = int(sys.argv[2])
@@ -19,6 +23,29 @@ ping     = ["PING", ]                         # Response => PONG
 pong     = ["PONG", ]
 
 initial_load = True
+
+def tcpListener(): 
+  #listen_for_friends(input("CONNECT or WAIT: ").upper())
+  BUFFER_SIZE = 20  # Normally 1024, but we want fast response
+
+  tcp_socket = socket(AF_INET, SOCK_STREAM)
+  tcp_socket.bind((HOST, PORT))
+  tcp_socket.listen(1024)
+
+  while 1:
+    client_socket, addr = tcp_socket.accept()
+    print('Connection address:', addr)
+
+    recv_data, addr = client_socket.recvfrom(1024)
+    data = pickle.loads(recv_data) 
+    
+    print("received data:", data)
+    return_message = pickle.dumps("GOT IT")
+    client_socket.send(return_message)
+
+    client_socket.close()
+
+thread.start_new_thread(tcpListener, ())
 
 while True:
   command = input("Enter a command: ").upper()
@@ -39,25 +66,23 @@ while True:
     client_socket.sendto(pickle.dumps(logout), ("localhost",9000))
 
   elif command == "CHAT":
-    #listen_for_friends(input("CONNECT or WAIT: ").upper())
-    BUFFER_SIZE = 20  # Normally 1024, but we want fast response
+    query[1] = str(input("username: "))
+    client_socket.sendto(pickle.dumps(query), ("",9000))
 
-    tcp_socket = socket(AF_INET, SOCK_STREAM)
-    tcp_socket.bind((HOST, PORT))
-    tcp_socket.listen(1024)
- 
-    while 1:
-      socket, addr = tcp_socket.accept()
-      print('Connection address:', addr)
+    recv_data, addr = client_socket.recvfrom(1024)
+    data = pickle.loads(recv_data) 
 
-      recv_data, addr = socket.recvfrom(1024)
-      data = pickle.loads(recv_data) 
-      
-      print("received data:", data)
-      return_message = pickle.dumps("GOT IT")
-      socket.send(return_message)
+    MESSAGE = "Hello, World!"
 
-      socket.close()
+    s = socket(AF_INET, SOCK_STREAM)
+    s.connect((data[2], int(data[3])))
+    s.send(pickle.dumps(MESSAGE))
+
+    recv_data, addr = s.recvfrom(1024)
+
+    data = pickle.loads(recv_data) 
+    print(data)
+    s.close()
 
 
   else:
