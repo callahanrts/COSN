@@ -3,7 +3,6 @@ from socket import *
 import pickle
 import sys
 import threading
-import readline
 
 HOST = str(sys.argv[1])
 PORT = int(sys.argv[2])
