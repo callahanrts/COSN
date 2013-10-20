@@ -94,24 +94,24 @@ def query_user(request, conn):
     if row[0]:
       exists = True 
   if exists:
-    print("Query for user " + row[1])
+    log("Query for user " + request[1] + ", successful!")
     return ["LOCATION", row[0], row[1], row[2], row[3]]
   else:
-    print("User was not found")
+    log("User was not found")
     return ["Error", "User was not found"]
 
-def remove_user_from_table(username): 
+def remove_user_from_table(username, conn): 
   conn.execute("DELETE FROM online_users WHERE username = ?", [username])
   conn.commit()
 
-def logout_user(username): 
+def logout_user(username, conn): 
   remove_user_from_table(username)
-  print("User logged out")
+  log("User logged out")
   return ["User was logged out successully"]
 
-def down_user(username):
-  remove_user_from_table(username)
-  print(username + " was taken offline for inactivity")
+def down_user(username, conn):
+  remove_user_from_table(username, conn)
+  log(username + " was taken offline for inactivity")
   return ["User was taken offline for inactivity"]
 
 
