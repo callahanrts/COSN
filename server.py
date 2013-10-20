@@ -4,18 +4,6 @@ import sqlite3
 import pickle
 
 
-# Connect to sqlite database and print success message
-conn = sqlite3.connect('cosn.db')
-print("Opened database successfully")
-
-# Delete records of online users
-conn.execute("DELETE FROM online_users")
-conn.commit()
-
-#Connect to server and print message 
-server_socket = socket(AF_INET, SOCK_DGRAM)  
-server_socket.bind(('', 9000))
-print("(9000) UDP Server Waiting for client...")
 
 ##
 # Server Commands
@@ -62,27 +50,3 @@ def down_user(username):
   print(username + " was taken offline for inactivity")
   return ["User was taken offline for inactivity"]
 
-
-# Wait for connections from clients
-while True:
-  # Retrieve data from request
-  data, address = server_socket.recvfrom(1024)
-  request = pickle.loads(data)
-  command = request[0]
-
-  if command == "REGISTER":
-    return_message = pickle.dumps(register_user())
-
-  elif command == "QUERY":
-    return_message = pickle.dumps(query_user())
-
-  elif command == "LOGOUT":
-    return_message = pickle.dumps(logout_user(request[1]))
-
-  elif command == "DOWN": 
-    return_message = pickle.dumps(down_user(request[1]))
-
-  else:
-    print("Invalid data from client ( " ,address[0], " " , address[1] , " ): ", command)
-
-  server_socket.sendto(return_message, address)
