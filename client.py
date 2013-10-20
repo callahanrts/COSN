@@ -23,14 +23,23 @@ logout   = ["LOGOUT", USERNAME]               # Response => none
 down     = ["DOWN", USERNAME]
 
 # P2P Command Strings
-ping     = ["PING", "user", "ip", "port"]     # Response => PONG
-pong     = ["PONG", "user", "ip", "port"]     # Response => none
-friend   = ["FRIEND", ""]                     # Response => CONFIRM
-confirm  = ["CONFIRM", USERNAME]              # Response => none
-busy     = ["BUSY", USERNAME]                 # Response => none
+ping      = ["PING", "user", "ip", "port"]     # Response => PONG
+pong      = ["PONG", "user", "ip", "port"]     # Response => none
+friend    = ["FRIEND", ""]                     # Response => CONFIRM
+confirm   = ["CONFIRM", USERNAME]              # Response => none
+busy      = ["BUSY", USERNAME]                 # Response => none
+chat      = ["CHAT", 'msg']                    # Response => DELIVERED
+delivered = ["DELIVERED", "delivered"]         # Response => none
 
 initial_load = True
+chat_flag = False # chatting flag
 
+def chatting(val):
+  chat_flat = val
+
+def is_chatting():
+  if chat_flag: return True
+  return False
 ##
 # Client-Server Commands
 ##
@@ -101,9 +110,13 @@ def chat_manager():
 
     elif command == "FRIEND": 
       send_message = befriend_user(data)
-      # if not send_message:
-      #   down_user(query[MESSAGE])
-      #   continue
+      if not send_message:
+        down_user(query[MESSAGE])
+        continue
+
+    elif command == "CHAT":
+      chatting(True)
+      chat_loop(s)
 
     else:
       print("command not found")
@@ -120,6 +133,16 @@ def chat_manager():
 
   s.close()
 
+def send_chat(message, connection):
+  if message == "\q": return False
+  chat[MESSAGE] = USERNAME+": "+message
+  connection.send(pickle.dumps(chat))
+  return True
+
+def chat_loop(s):
+  while True:
+    cont = send_chat(input(USERNAME + ": "), s)
+    if not cont: break
 
 ##
 # Connection Threads
@@ -127,16 +150,16 @@ def chat_manager():
 def peer_communication_thread(): 
   tcp_socket.bind((HOST, PORT))
   tcp_socket.listen(1024)
-
+  same_connection = False
   while True:
-    client_socket, addr = tcp_socket.accept()
+    if not same_connection: peer_socket, addr = tcp_socket.accept()
 
-    recv_data, addr = client_socket.recvfrom(1024)
+    recv_data, addr = peer_socket.recvfrom(1024)
     data = pickle.loads(recv_data) 
 
-    if chatting: 
-      client_socket.send(pickle.dumps(busy))
-      continue
+    # if is_chatting(): 
+    #   peer_socket.send(pickle.dumps(busy))
+    #   continue
       
     if data[STATUS] == "PING":
       reply = pong_user()
@@ -144,19 +167,33 @@ def peer_communication_thread():
     elif data[STATUS] == "FRIEND":
       reply = confirm
 
+    elif data[STATUS] == "CHAT":
+      print(data[MESSAGE])
+      same_connection = True
+      continue
+
+    elif data[STATUS] == "DELIVERED": 
+      print("Delivered")
+      print(data[MESSAGE])
+      peer_socket.close()
+      continue
+
     else:
       print("received data:", data[MESSAGE])
       reply = ["OK", str(input("reply: "))]
 
+    same_connection = False
     return_message = pickle.dumps(reply)
-    client_socket.send(return_message)
-    client_socket.close()
+    peer_socket.send(return_message)
+    peer_socket.close()
 
   tcp_socket.close()
 
 def server_communication_thread(): 
   client_socket.bind((HOST, PORT))
   while True:
+    print(is_chatting())
+    if is_chatting(): break 
     command = input("Enter a command: ").upper()
     if command == "REGISTER":
       send_message = register_user()
@@ -175,6 +212,10 @@ def server_communication_thread():
       chat_manager()
       break
 
+    elif command == "EXIT":
+      print("EXITING MAIN LOOP")
+      break
+
     else:
       print("ERROR: command not recognized")
       continue
@@ -188,6 +229,7 @@ def server_communication_thread():
   client_socket.close()
 
 server_comm = threading.Thread(target = server_communication_thread)
+server_comm.daemon = True
 peer_comm = threading.Thread(target = peer_communication_thread)
 
 server_comm.start()
