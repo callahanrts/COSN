@@ -73,10 +73,11 @@ def execute_command():
     server = True
 
   elif command == "CHAT":
-    chat_manager()
+    chat_window()
     peer = True
+    return
 
-  if command == "PING":
+  elif command == "PING":
     data = query_user(username.get())
     send_message = ping_user(data)
     peer = True
@@ -95,7 +96,28 @@ def execute_command():
   elif peer: log(sendto_peer(data, send_message))
 
 
-  
+def chat_window():
+  # create child window
+  win = Toplevel()
+
+  # Chat Log
+  Label(win, text = "Chat Log Messages").pack()
+
+  Scrollbar(win).pack(side=RIGHT, fill=Y, pady=(0, 10), padx=(0, 10))
+
+  chatbox = Listbox(win)
+  chatbox.config(width=65, height=15)
+  chatbox.pack(padx=(10, 0), pady=(0, 10))
+
+  # Username Label
+  Label(win, text = "Chat Message: ", anchor=W, width=30).pack()
+
+  # Chat input
+  chat = StringVar()
+  Entry(win, textvariable = chat, width=30).pack()
+
+  # Send Message
+  Button(win, text="Send", command=execute_command).pack()
 
 
 ####################
