@@ -17,7 +17,6 @@ STATUS = 0
 MESSAGE = 1
 
 client_socket = socket(AF_INET, SOCK_DGRAM)
-tcp_socket = socket(AF_INET, SOCK_STREAM)
 chat_conn = socket(AF_INET, SOCK_STREAM) 
 
 
@@ -44,26 +43,58 @@ chat_flag = False # chatting flag
 ## Event Listeners
 ###########################
 
+def sendto_peer(data, send_message):
+  chat_conn = socket(AF_INET, SOCK_STREAM)  
+  try: 
+    chat_conn.connect((data[2], int(data[3])))
+    chat_conn.send(pickle.dumps(send_message))  
+  except: 
+    log("User is offline")
+    down_user(username.get())
+    return
+
+  recv_data, addr = chat_conn.recvfrom(1024)
+  return pickle.loads(recv_data) 
+
 def execute_command():
+  server = False
+  peer = False
   command = var.get().upper()
   if command == "REGISTER":
     send_message = register_user()
+    server = True
 
   elif command == "QUERY":
-    log(query_user(username.get()))
+    data = log(query_user(username.get()))
     return
 
   elif command == "LOGOUT":
     send_message = logout_user()
+    server = True
 
   elif command == "CHAT":
     chat_manager()
+    peer = True
 
-  client_socket.sendto(pickle.dumps(send_message), SERVER_ADDR)
+  if command == "PING":
+    data = query_user(username.get())
+    send_message = ping_user(data)
+    peer = True
 
-  recv_data, addr = client_socket.recvfrom(1024)
-  data = pickle.loads(recv_data) 
-  log(data)
+  elif command == "FRIEND":
+    send_message = confirm
+    peer = True
+
+  if server: 
+    client_socket.sendto(pickle.dumps(send_message), SERVER_ADDR)
+    recv_data, addr = client_socket.recvfrom(1024)
+    data = pickle.loads(recv_data) 
+    log(data)
+
+  elif peer: log(sendto_peer(data, send_message))
+
+
+  
 
 
 ####################
@@ -73,8 +104,8 @@ def execute_command():
 
 root = Tk()
 
-root.title("Server")
-root.geometry("600x400")
+root.title(USERNAME)
+root.geometry("500x300")
 
 # Command Label
 c_label = Label(root, text = "Command", anchor=W)
@@ -179,10 +210,45 @@ def befriend_user(user):
 def log(message):
   listbox.insert(END, message)
 
+def peer_listener():
+  tcp_socket = socket(AF_INET, SOCK_STREAM)
+  tcp_socket.bind((HOST, PORT))
+  tcp_socket.listen(1024)
+  while 1:
+    peer_socket, addr = tcp_socket.accept()
+    recv_data, addr = peer_socket.recvfrom(1024)
+    data = pickle.loads(recv_data) 
+    log(data)
+    if data[STATUS] == "PING":
+      reply = pong_user()
+
+    elif data[STATUS] == "FRIEND":
+      reply = confirm
+
+    elif data[STATUS] == "CHAT":
+      log(data[MESSAGE])
+      same_connection = True
+      peer_socket.send(pickle.dumps(delivered))
+      continue
+
+    elif data[STATUS] == "DELIVERED": 
+      log("Delivered")
+      log(data[MESSAGE])
+      peer_socket.close()
+      continue
+
+    return_message = pickle.dumps(reply)
+    peer_socket.send(return_message)
+    peer_socket.close()
+
+  tcp_socket.close()
 
 #######################################
 ##              MAIN                 ##
 #######################################
 
 if __name__ == '__main__':
+  listener = threading.Thread(target = peer_listener)
+  listener.start()
+
   root.mainloop()

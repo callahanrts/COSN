@@ -6,8 +6,6 @@ import pickle
 import threading
 
 
-
-
 #Connect to server and print message 
 server_socket = socket(AF_INET, SOCK_DGRAM)  
 server_socket.bind(('', 9000))
@@ -16,7 +14,7 @@ print("(9000) UDP Server Waiting for client...")
 root = Tk()
 
 root.title("Server")
-root.geometry("300x500")
+root.geometry("300x350")
 
 l = Label(root, text = "Server Log Messages")
 l.pack()
@@ -63,7 +61,8 @@ def probe_server():
       return_message = pickle.dumps(down_user(request[1]))
 
     else:
-      log("Invalid data from client ( " ,address[0], " " , address[1] , " ): ", command)
+      log("Invalid data from client ( " ,address[0], " " , address[1] , " ): ")
+      log(command)
 
     server_socket.sendto(return_message, address)
 
@@ -118,5 +117,5 @@ def down_user(username, conn):
 if __name__ == '__main__':
   listener = threading.Thread(target = probe_server)
   listener.start()
-  #  root.after(1000, probe_server)
+
   root.mainloop()
