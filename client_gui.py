@@ -32,7 +32,7 @@ pong      = ["PONG", "user", "ip", "port"]     # Response => none
 friend    = ["FRIEND", ""]                     # Response => CONFIRM
 confirm   = ["CONFIRM", USERNAME]              # Response => none
 busy      = ["BUSY", USERNAME]                 # Response => none
-chat      = ["CHAT", 'msg']                    # Response => DELIVERED
+chat      = ["CHAT", 'msg', "username"]        # Response => DELIVERED
 delivered = ["DELIVERED", "delivered"]         # Response => none
 
 initial_load = True
@@ -168,7 +168,11 @@ def chat_window():
   Label(win, text = "Chat Message: ", anchor=W, width=30).pack()
 
   # Chat input
+  log("get friend data")
   friend_data = query_user(username.get())
+  log(friend_data)
+
+  global messaging
   messaging.set(1)
 
   e = Entry(win, textvariable = chat_message, width=30)
@@ -184,6 +188,8 @@ def log_message(message):
 
 def reply_message(friend_data):
   chat[MESSAGE] = chat_message.get()
+  log_message(USERNAME+": "+chat[MESSAGE])
+  chat[2] = USERNAME
   sendto_peer(friend_data, chat)
   return
 
@@ -199,7 +205,7 @@ def is_chatting():
   if messaging.get() == 1:
     return True
   return False
-  
+
 ##
 # Client-Server Commands
 ##
@@ -263,8 +269,9 @@ def peer_listener():
       reply = confirm
 
     elif data[STATUS] == "CHAT":
+      username.set(data[2])
       if not is_chatting(): chat_window()
-      log_message(data[MESSAGE])
+      log_message(data[2]+ ": "+data[MESSAGE])
       peer_socket.send(pickle.dumps(delivered))
       continue
 
