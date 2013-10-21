@@ -3,6 +3,11 @@ from socket import *
 import pickle
 import sys
 import threading
+from tkinter import * 
+
+#####################
+## SOCKET SETUP
+#####################
 
 HOST = str(sys.argv[1])
 PORT = int(sys.argv[2])
@@ -12,7 +17,6 @@ STATUS = 0
 MESSAGE = 1
 
 client_socket = socket(AF_INET, SOCK_DGRAM)
-tcp_socket = socket(AF_INET, SOCK_STREAM)
 chat_conn = socket(AF_INET, SOCK_STREAM) 
 
 
@@ -28,18 +32,180 @@ pong      = ["PONG", "user", "ip", "port"]     # Response => none
 friend    = ["FRIEND", ""]                     # Response => CONFIRM
 confirm   = ["CONFIRM", USERNAME]              # Response => none
 busy      = ["BUSY", USERNAME]                 # Response => none
-chat      = ["CHAT", 'msg']                    # Response => DELIVERED
+chat      = ["CHAT", 'msg', "username"]        # Response => DELIVERED
 delivered = ["DELIVERED", "delivered"]         # Response => none
 
 initial_load = True
 chat_flag = False # chatting flag
 
+
+def execute_command():
+  server = False
+  peer = False
+  command = var.get().upper()
+  if command == "REGISTER":
+    send_message = register_user()
+    server = True
+
+  elif command == "QUERY":
+    data = log(query_user(username.get()))
+    return
+
+  elif command == "LOGOUT":
+    send_message = logout_user()
+    server = True
+
+  elif command == "CHAT":
+    chat_window()
+    peer = True
+    return
+
+  elif command == "PING":
+    data = query_user(username.get())
+    send_message = ping_user(data)
+    peer = True
+
+  elif command == "FRIEND":
+    data = query_user(username.get())
+    send_message = befriend_user(data)
+    peer = True
+
+  if server: 
+    client_socket.sendto(pickle.dumps(send_message), SERVER_ADDR)
+    recv_data, addr = client_socket.recvfrom(1024)
+    data = pickle.loads(recv_data) 
+    log(data)
+
+  elif peer: log(sendto_peer(data, send_message))
+
+####################
+## GUI SETUP 
+####################
+
+
+root = Tk()
+
+root.title(USERNAME)
+root.geometry("500x300")
+
+# Command Label
+c_label = Label(root, text = "Command", anchor=W)
+c_label.pack()
+
+# Command Menu Button
+var = StringVar(root)
+var.set("Register") # initial value
+
+option = OptionMenu(root, var, "Register", "Query", "Logout", "Ping", "Friend", "Chat")
+option.config(width=10)
+option.pack()
+
+
+# Username Label
+i_label = Label(root, text = "Username, if neccessary", anchor=W, width=30)
+i_label.pack()
+
+# Uername input
+username = StringVar()
+text_field = Entry(root, textvariable = username, width=30)
+text_field.pack()
+
+# Send Button
+button = Button(root, text="Send", command=execute_command)
+button.pack()
+
+# Client Log
+m_label = Label(root, text = "Client Log Messages")
+m_label.pack()
+
+scrollbar = Scrollbar(root)
+scrollbar.pack(side=RIGHT, fill=Y, pady=(0, 10), padx=(0, 10))
+
+listbox = Listbox(root)
+listbox.config(width=65, height=15)
+listbox.pack(padx=(10, 0), pady=(0, 10))
+
+###################################
+# Items for Chat Window
+###################################
+chat_message = StringVar()
+messaging = IntVar()
+chatbox = None
+
+###########################
+## Event Listeners
+###########################
+
+def sendto_peer(data, send_message):
+  chat_conn = socket(AF_INET, SOCK_STREAM)  
+  try: 
+    chat_conn.connect((data[2], int(data[3])))
+    chat_conn.send(pickle.dumps(send_message))  
+  except: 
+    log("User is offline")
+    down_user(username.get())
+    return
+
+  recv_data, addr = chat_conn.recvfrom(1024)
+  return pickle.loads(recv_data) 
+
+
+def chat_window():
+  # create child window
+  win = Toplevel()
+
+  # Chat Log
+  Label(win, text = "Chat Log Messages").pack()
+
+  Scrollbar(win).pack(side=RIGHT, fill=Y, pady=(0, 10), padx=(0, 10))
+
+  global chatbox
+  chatbox = Listbox(win)
+  chatbox.config(width=65, height=15)
+  chatbox.pack(padx=(10, 0), pady=(0, 10))
+
+  # Username Label
+  Label(win, text = "Chat Message: ", anchor=W, width=30).pack()
+
+  # Chat input
+  log("get friend data")
+  friend_data = query_user(username.get())
+  log(friend_data)
+
+  global messaging
+  messaging.set(1)
+
+  e = Entry(win, textvariable = chat_message, width=30)
+  e.pack()
+
+  # Send Message
+  Button(win, text="Send", command=lambda: reply_message(friend_data)).pack()
+
+
+def log_message(message):
+  global chatbox
+  chatbox.insert(END, message)
+
+def reply_message(friend_data):
+  chat[MESSAGE] = chat_message.get()
+  log_message(USERNAME+": "+chat[MESSAGE])
+  chat[2] = USERNAME
+  sendto_peer(friend_data, chat)
+  return
+
+###########################
+## Functions
+###########################
+
 def chatting(val):
   chat_flat = val
 
 def is_chatting():
-  if chat_flag: return True
+  global messaging
+  if messaging.get() == 1:
+    return True
   return False
+
 ##
 # Client-Server Commands
 ##
@@ -81,87 +247,21 @@ def pong_user():
   return pong
 
 def befriend_user(user):
-  data = query_user(user[4])
-  if data[0] == "LOCATION": 
-    friend[MESSAGE] = data[4]
-    return friend
-  else: 
-    return False
+  friend[MESSAGE] = user[MESSAGE]
+  return friend
 
-def chat_manager(): 
-  print("Opened chat manager choose friend: ") # if friends list friends then query for availability
-  # else prompt for friend to be added
-  data = query_user(input("username: "))
+def log(message):
+  listbox.insert(END, message)
 
-  chat_conn = socket(AF_INET, SOCK_STREAM)  
-  try: 
-    chat_conn.connect((data[2], int(data[3])))
-  except: 
-    print("User is offline")
-    down_user(query[MESSAGE])
-    chat_manager()
-    return
-
-  while True:
-    command = input("chat command: ").upper()
-
-    if command == "PING":  
-      send_message = ping_user(data)
-
-    elif command == "FRIEND": 
-      send_message = befriend_user(data)
-      if not send_message:
-        down_user(query[MESSAGE])
-        continue
-
-    elif command == "CHAT":
-      chatting(True)
-      chat_comm.start()
-      continue
-
-    else:
-      print("command not found")
-      continue
-
-    try:  
-      chat_conn.send(pickle.dumps(send_message))  
-    except timeout: 
-      down_user(query[MESSAGE])
-
-    recv_data, addr = chat_conn.recvfrom(1024)
-    data = pickle.loads(recv_data) 
-    print(data)
-
-  chat_conn.close()
-
-def send_chat(message, connection):
-  if message == "\q": return False
-  chat[MESSAGE] = USERNAME+": "+message
-  connection.send(pickle.dumps(chat))
-  return True
-
-def chat_loop(s):
-  while True:
-    cont = send_chat(input(USERNAME + ": "), s)
-    if not cont: break
-
-##
-# Connection Threads
-##
-def peer_communication_thread(): 
+def peer_listener():
+  tcp_socket = socket(AF_INET, SOCK_STREAM)
   tcp_socket.bind((HOST, PORT))
   tcp_socket.listen(1024)
-  same_connection = False
-  while True:
-    if not same_connection: peer_socket, addr = tcp_socket.accept()
-
+  while 1:
+    peer_socket, addr = tcp_socket.accept()
     recv_data, addr = peer_socket.recvfrom(1024)
     data = pickle.loads(recv_data) 
-
-    # if is_chatting(): 
-    #   peer_socket.send(pickle.dumps(busy))
-    #   continue
-      
+    log(data)
     if data[STATUS] == "PING":
       reply = pong_user()
 
@@ -169,70 +269,30 @@ def peer_communication_thread():
       reply = confirm
 
     elif data[STATUS] == "CHAT":
-      print(data[MESSAGE])
-      same_connection = True
+      username.set(data[2])
+      if not is_chatting(): chat_window()
+      log_message(data[2]+ ": "+data[MESSAGE])
       peer_socket.send(pickle.dumps(delivered))
       continue
 
     elif data[STATUS] == "DELIVERED": 
-      print("Delivered")
-      print(data[MESSAGE])
+      log("Delivered")
+      log(data[MESSAGE])
       peer_socket.close()
       continue
 
-    else:
-      print("received data:", data[MESSAGE])
-      reply = ["OK", str(input("reply: "))]
-
-    same_connection = False
     return_message = pickle.dumps(reply)
     peer_socket.send(return_message)
     peer_socket.close()
 
   tcp_socket.close()
 
-def server_communication_thread(): 
-  client_socket.bind((HOST, PORT))
-  while True:
-    print(is_chatting())
-    if is_chatting(): break 
-    command = input("Enter a command: ").upper()
-    if command == "REGISTER":
-      send_message = register_user()
+#######################################
+##              MAIN                 ##
+#######################################
 
-    elif command == "QUERY":
-      print(query_user(str(input("username: "))))
-      continue
+if __name__ == '__main__':
+  listener = threading.Thread(target = peer_listener)
+  listener.start()
 
-    elif command == "LIST":
-      send_message = list_commands()
-
-    elif command == "LOGOUT":
-      send_message = logout_user()
-
-    elif command == "CHAT":
-      chat_manager()
-      break
-
-    elif command == "EXIT":
-      print("EXITING MAIN LOOP")
-      break
-
-    else:
-      print("ERROR: command not recognized")
-      continue
-
-    client_socket.sendto(pickle.dumps(send_message), SERVER_ADDR)
-
-    recv_data, addr = client_socket.recvfrom(1024)
-    data = pickle.loads(recv_data) 
-    print(data)
-
-  client_socket.close()
-
-server_comm = threading.Thread(target = server_communication_thread)
-peer_comm = threading.Thread(target = peer_communication_thread)
-chat_comm = threading.Thread(target = chat_loop, args = [chat_conn])
-
-server_comm.start()
-peer_comm.start()
+  root.mainloop()
