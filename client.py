@@ -3,7 +3,6 @@ from socket import *
 import pickle
 import sys
 import threading
-import readline
 
 HOST = str(sys.argv[1])
 PORT = int(sys.argv[2])
@@ -14,6 +13,7 @@ MESSAGE = 1
 
 client_socket = socket(AF_INET, SOCK_DGRAM)
 tcp_socket = socket(AF_INET, SOCK_STREAM)
+chat_conn = socket(AF_INET, SOCK_STREAM) 
 
 
 # Client-Server Command Strings
@@ -93,9 +93,9 @@ def chat_manager():
   # else prompt for friend to be added
   data = query_user(input("username: "))
 
-  s = socket(AF_INET, SOCK_STREAM)  
+  chat_conn = socket(AF_INET, SOCK_STREAM)  
   try: 
-    s.connect((data[2], int(data[3])))
+    chat_conn.connect((data[2], int(data[3])))
   except: 
     print("User is offline")
     down_user(query[MESSAGE])
@@ -116,22 +116,23 @@ def chat_manager():
 
     elif command == "CHAT":
       chatting(True)
-      chat_loop(s)
+      chat_comm.start()
+      continue
 
     else:
       print("command not found")
       continue
 
     try:  
-      s.send(pickle.dumps(send_message))  
+      chat_conn.send(pickle.dumps(send_message))  
     except timeout: 
       down_user(query[MESSAGE])
 
-    recv_data, addr = s.recvfrom(1024)
+    recv_data, addr = chat_conn.recvfrom(1024)
     data = pickle.loads(recv_data) 
     print(data)
 
-  s.close()
+  chat_conn.close()
 
 def send_chat(message, connection):
   if message == "\q": return False
@@ -170,6 +171,7 @@ def peer_communication_thread():
     elif data[STATUS] == "CHAT":
       print(data[MESSAGE])
       same_connection = True
+      peer_socket.send(pickle.dumps(delivered))
       continue
 
     elif data[STATUS] == "DELIVERED": 
@@ -229,8 +231,8 @@ def server_communication_thread():
   client_socket.close()
 
 server_comm = threading.Thread(target = server_communication_thread)
-server_comm.daemon = True
 peer_comm = threading.Thread(target = peer_communication_thread)
+chat_comm = threading.Thread(target = chat_loop, args = [chat_conn])
 
 server_comm.start()
 peer_comm.start()
