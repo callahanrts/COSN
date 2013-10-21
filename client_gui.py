@@ -39,23 +39,6 @@ initial_load = True
 chat_flag = False # chatting flag
 
 
-###########################
-## Event Listeners
-###########################
-
-def sendto_peer(data, send_message):
-  chat_conn = socket(AF_INET, SOCK_STREAM)  
-  try: 
-    chat_conn.connect((data[2], int(data[3])))
-    chat_conn.send(pickle.dumps(send_message))  
-  except: 
-    log("User is offline")
-    down_user(username.get())
-    return
-
-  recv_data, addr = chat_conn.recvfrom(1024)
-  return pickle.loads(recv_data) 
-
 def execute_command():
   server = False
   peer = False
@@ -94,31 +77,6 @@ def execute_command():
     log(data)
 
   elif peer: log(sendto_peer(data, send_message))
-
-
-def chat_window():
-  # create child window
-  win = Toplevel()
-
-  # Chat Log
-  Label(win, text = "Chat Log Messages").pack()
-
-  Scrollbar(win).pack(side=RIGHT, fill=Y, pady=(0, 10), padx=(0, 10))
-
-  chatbox = Listbox(win)
-  chatbox.config(width=65, height=15)
-  chatbox.pack(padx=(10, 0), pady=(0, 10))
-
-  # Username Label
-  Label(win, text = "Chat Message: ", anchor=W, width=30).pack()
-
-  # Chat input
-  chat = StringVar()
-  Entry(win, textvariable = chat, width=30).pack()
-
-  # Send Message
-  Button(win, text="Send", command=execute_command).pack()
-
 
 ####################
 ## GUI SETUP 
@@ -167,10 +125,67 @@ listbox = Listbox(root)
 listbox.config(width=65, height=15)
 listbox.pack(padx=(10, 0), pady=(0, 10))
 
-# # attach listbox to scrollbar
-# listbox.config(yscrollcommand=scrollbar.set)
-# scrollbar.config(command=listbox.yview)
+###################################
+# Items for Chat Window
+###################################
+chat_message = StringVar()
+messaging = IntVar()
+chatbox = None
 
+###########################
+## Event Listeners
+###########################
+
+def sendto_peer(data, send_message):
+  chat_conn = socket(AF_INET, SOCK_STREAM)  
+  try: 
+    chat_conn.connect((data[2], int(data[3])))
+    chat_conn.send(pickle.dumps(send_message))  
+  except: 
+    log("User is offline")
+    down_user(username.get())
+    return
+
+  recv_data, addr = chat_conn.recvfrom(1024)
+  return pickle.loads(recv_data) 
+
+
+def chat_window():
+  # create child window
+  win = Toplevel()
+
+  # Chat Log
+  Label(win, text = "Chat Log Messages").pack()
+
+  Scrollbar(win).pack(side=RIGHT, fill=Y, pady=(0, 10), padx=(0, 10))
+
+  global chatbox
+  chatbox = Listbox(win)
+  chatbox.config(width=65, height=15)
+  chatbox.pack(padx=(10, 0), pady=(0, 10))
+
+  # Username Label
+  Label(win, text = "Chat Message: ", anchor=W, width=30).pack()
+
+  # Chat input
+  friend_data = query_user(username.get())
+  messaging.set(1)
+
+  e = Entry(win, textvariable = chat_message, width=30)
+  e.pack()
+
+  # Send Message
+  Button(win, text="Send", command=lambda: reply_message(friend_data)).pack()
+
+
+def log_message(message):
+  global chatbox
+  chatbox.insert(END, message)
+
+def reply_message(friend_data):
+  chat[MESSAGE] = chat_message.get()
+  sendto_peer(friend_data, chat)
+  return
 
 ###########################
 ## Functions
@@ -180,8 +195,11 @@ def chatting(val):
   chat_flat = val
 
 def is_chatting():
-  if chat_flag: return True
+  global messaging
+  if messaging.get() == 1:
+    return True
   return False
+  
 ##
 # Client-Server Commands
 ##
@@ -245,8 +263,8 @@ def peer_listener():
       reply = confirm
 
     elif data[STATUS] == "CHAT":
-      log(data[MESSAGE])
-      same_connection = True
+      if not is_chatting(): chat_window()
+      log_message(data[MESSAGE])
       peer_socket.send(pickle.dumps(delivered))
       continue
 
