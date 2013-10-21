@@ -82,7 +82,8 @@ def execute_command():
     peer = True
 
   elif command == "FRIEND":
-    send_message = confirm
+    data = query_user(username.get())
+    send_message = befriend_user(data)
     peer = True
 
   if server: 
@@ -200,12 +201,8 @@ def pong_user():
   return pong
 
 def befriend_user(user):
-  data = query_user(user[4])
-  if data[0] == "LOCATION": 
-    friend[MESSAGE] = data[4]
-    return friend
-  else: 
-    return False
+  friend[MESSAGE] = user[MESSAGE]
+  return friend
 
 def log(message):
   listbox.insert(END, message)
