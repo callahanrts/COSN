@@ -24,7 +24,7 @@ class ClientGui:
     self.username = StringVar()
     self.createInput(self.username, self.root)
 
-    self.createButton("Send", self.openChatMenu, self.root)
+    self.createButton("Send", self.openChatMenu, self.root).pack()
 
     self.createLabel("Client Log Messages", self.root)
     self.createLogBox(self.listbox, self.root)
@@ -48,9 +48,10 @@ class ClientGui:
     return Entry(window, textvariable = textVar, width=30).pack()
 
   def createButton(self, lbl, cmd, window):
-    return Button(window, text= lbl, command = cmd).pack()
+    return Button(window, text= lbl, command = cmd)
 
-  def createFrame(self):
+  def createFrame(self, window):
+    return Frame(window)
 
   def createLogBox(self, log_box, window):
     sb = Scrollbar(window)
@@ -71,8 +72,11 @@ class ClientGui:
     self.createLabel("TERMINATE to quit chat", self.win)
 
     self.createInput(self.chat_message, self.win)
-    self.createButton("Send", None, self.win)
-    self.createButton("Terminate", None, self.win)
+    frame = self.createFrame(self.win)
+    frame.pack()
+    self.createButton("Terminate", None, frame).pack(side=LEFT)
+    self.createButton("Send", None, frame).pack(side=RIGHT)
+
 
   def start(self):
     self.root.mainloop()
