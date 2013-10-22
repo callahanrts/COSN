@@ -1,0 +1,342 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"succ",
+				"successfully"
+			],
+			[
+				"list",
+				"listen_for_friends"
+			],
+			[
+				"use",
+				"USERNAME"
+			],
+			[
+				"U",
+				"UDP_PORT"
+			],
+			[
+				"UDP",
+				"UDP_HOST"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "/Users/codycallahan/Desktop/cosn2/server.py",
+			"settings":
+			{
+				"buffer_size": 3375,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "from array import *\nfrom socket import *\nimport pickle\nimport sys\nimport threading\nfrom tkinter import * \nimport xml.dom.minidom \nimport xml.etree.ElementTree as ET\n\n#####################\n## SOCKET SETUP\n#####################\n\nHOST = str(sys.argv[1])\nPORT = int(sys.argv[2])\nUSERNAME = str(sys.argv[3])\nSERVER_ADDR = (\"\", 9000)\nSTATUS = 0\nMESSAGE = 1\n\nclient_socket = socket(AF_INET, SOCK_DGRAM)\nchat_conn = socket(AF_INET, SOCK_STREAM) \n\n\n# Client-Server Command Strings\nregister = [\"REGISTER\", HOST, PORT, USERNAME] # Response => ACK\nquery    = [\"QUERY\", \"1\"]                     # Response => LOCATION\nlogout   = [\"LOGOUT\", USERNAME]               # Response => none  \ndown     = [\"DOWN\", USERNAME]\n\n# P2P Command Strings\nping      = [\"PING\", \"user\", \"ip\", \"port\"]     # Response => PONG\npong      = [\"PONG\", \"user\", \"ip\", \"port\"]     # Response => none\nfriend    = [\"FRIEND\", \"\"]                     # Response => CONFIRM\nconfirm   = [\"CONFIRM\", USERNAME]              # Response => none\nbusy      = [\"BUSY\", USERNAME]                 # Response => none\nchat      = [\"CHAT\", 'msg', \"username\"]        # Response => DELIVERED\ndelivered = [\"DELIVERED\", \"delivered\"]         # Response => none\nterminate = [\"TERMINATE\", USERNAME]            # Response => none\nrequest   = [\"REQUEST\", \"user\", \"ver\"]         # Response => PROFILE\nprofile   = [\"PROFILE\", USERNAME, \"v\", \"file\"] # Response => none\n\ninitial_load = True\nchat_flag = False # chatting flag\n\n\ndef execute_command():\n  server = False\n  peer = False\n  command = var.get().upper()\n  if command == \"REGISTER\":\n    send_message = register_user()\n    server = True\n\n  elif command == \"QUERY\":\n    data = log(query_user(username.get()))\n    return\n\n  elif command == \"LOGOUT\":\n    send_message = logout_user()\n    server = True\n\n  elif command == \"CHAT\":\n    chat_window()\n    peer = True\n    return\n\n  elif command == \"PING\":\n    data = query_user(username.get())\n    send_message = ping_user(data)\n    peer = True\n\n  elif command == \"FRIEND\":\n    data = query_user(username.get())\n    send_message = befriend_user(data)\n    peer = True\n\n  elif command == \"REQUEST\":\n    data = query_user(username.get())\n    send_message = request_profile(data, 1)\n    peer = True\n\n  # elif command == \"GET\":\n  #   data = \n\n\n  if server: \n    client_socket.sendto(pickle.dumps(send_message), SERVER_ADDR)\n    recv_data, addr = client_socket.recvfrom(1024)\n    data = pickle.loads(recv_data) \n    log(data)\n\n  elif peer: \n    response = sendto_peer(data, send_message)\n    if response[STATUS] == \"PROFILE\":\n      root = ET.fromstring(response[3])\n      tree = ET.ElementTree(root)\n      tree.write(USERNAME+\"/friends/\"+response[MESSAGE]+\".xml\")\n      response[3] = \"FILE\"\n\n    log(response)\n\n####################\n## GUI SETUP \n####################\n\n\nroot = Tk()\n\nroot.title(USERNAME)\nroot.geometry(\"300x300\")\n\n# Command Label\nc_label = Label(root, text = \"Command\", anchor=W)\nc_label.pack()\n\n# Command Menu Button\nvar = StringVar(root)\nvar.set(\"Register\") # initial value\n\noption = OptionMenu(root, var, \"Register\", \"Query\", \"Logout\", \"Ping\", \"Friend\", \"Chat\", \"Request\", \"Get\")\noption.config(width=10)\noption.pack()\n\n\n# Username Label\ni_label = Label(root, text = \"Username, if neccessary\", anchor=W, width=30)\ni_label.pack()\n\n# Uername input\nusername = StringVar()\ntext_field = Entry(root, textvariable = username, width=30)\ntext_field.pack()\n\n# Send Button\nbutton = Button(root, text=\"Send\", command=execute_command)\nbutton.pack()\n\n# Client Log\nm_label = Label(root, text = \"Client Log Messages\")\nm_label.pack()\n\nscrollbar = Scrollbar(root)\nscrollbar.pack(side=RIGHT, fill=Y, pady=(0, 10), padx=(0, 10))\n\nlistbox = Listbox(root)\nlistbox.config(width=65, height=15)\nlistbox.pack(padx=(10, 0), pady=(0, 10))\n\n###################################\n# Items for Chat Window\n###################################\nchat_message = StringVar()\nmessaging = IntVar()\nchatbox = None\nwin = None\n\n###########################\n## Event Listeners\n###########################\n\ndef sendto_peer(data, send_message):\n  chat_conn = socket(AF_INET, SOCK_STREAM)  \n  try: \n    chat_conn.connect((data[2], int(data[3])))\n    chat_conn.send(pickle.dumps(send_message))  \n  except: \n    log(\"User is offline\")\n    down_user(username.get())\n    return\n\n  recv_data, addr = chat_conn.recvfrom(1024)\n  chat_conn.close()\n  return pickle.loads(recv_data) \n\n\ndef chat_window():\n  # create child window\n  global win\n  win = Toplevel()\n\n  # Chat Log\n  Label(win, text = \"Chat Log Messages\").pack()\n\n  Scrollbar(win).pack(side=RIGHT, fill=Y, pady=(0, 10), padx=(0, 10))\n\n  global chatbox\n  chatbox = Listbox(win)\n  chatbox.config(width=30, height=10)\n  chatbox.pack(padx=(10, 0), pady=(0, 10))\n\n  # Username Label\n  Label(win, text = \"Chat Message: \", anchor=W, width=30).pack()\n\n  # Command Label\n  Label(win, text = \"TERMINATE to quit chat\", anchor=W, width=30).pack()\n\n  # Chat input\n  friend_data = query_user(username.get())\n\n  global messaging\n  messaging.set(1)\n\n  e = Entry(win, textvariable = chat_message, width=30)\n  e.pack()\n\n  # Send Message\n  Button(win, text=\"Send\", command=lambda: reply_message(friend_data)).pack()\n\n\ndef log_message(message):\n  global chatbox\n  chatbox.insert(END, message)\n\ndef reply_message(friend_data):\n  chat[MESSAGE] = chat_message.get()\n  log_message(USERNAME+\": \"+chat[MESSAGE])\n  chat[2] = USERNAME\n  sendto_peer(friend_data, chat)\n  return\n\n###########################\n## Functions\n###########################\n\ndef chatting(val):\n  chat_flat = val\n\ndef is_chatting():\n  global messaging\n  if messaging.get() == 1:\n    return True\n  return False\n\n##\n# Client-Server Commands\n##\ndef register_user(): \n  return register\n\ndef query_user(username): \n  query[MESSAGE] = username\n  client_socket.sendto(pickle.dumps(query), SERVER_ADDR)\n  recv_data, addr = client_socket.recvfrom(1024)\n  data = pickle.loads(recv_data) \n  return data\n\ndef logout_user(): \n  return logout\n\ndef down_user(username): # User should not be able to call this manually\n  down[MESSAGE] = username\n  return down\n\ndef list_commands(): \n  print(\"REGISTER\")\n  print(\"QUERY\")\n  print(\"LOGOUT\")\n\n##\n# P2P Commands\n##\ndef ping_user(user):\n  ping[MESSAGE] = user[MESSAGE]\n  ping[2] = user[2]\n  ping[3] = user[3]\n  return ping\n\ndef pong_user():\n  pong[MESSAGE] = USERNAME\n  pong[2] = HOST\n  pong[3] = PORT\n  return pong\n\ndef request_profile(user, version):\n  request[MESSAGE] = user[MESSAGE]\n  request[2] = version\n  return request\n\n\ndef befriend_user(user):\n  friend[MESSAGE] = user[MESSAGE]\n  return friend\n\ndef log(message):\n  listbox.insert(END, message)\n\ndef peer_listener():\n  tcp_socket = socket(AF_INET, SOCK_STREAM)\n  tcp_socket.bind((HOST, PORT))\n  tcp_socket.listen(1024)\n  while 1:\n    peer_socket, addr = tcp_socket.accept()\n    recv_data, addr = peer_socket.recvfrom(1024)\n    data = pickle.loads(recv_data) \n    global win\n    log(data)\n    if data[STATUS] == \"PING\":\n      reply = pong_user()\n\n    elif data[STATUS] == \"FRIEND\":\n      reply = confirm\n\n    elif data[STATUS] == \"CHAT\":\n      username.set(data[2])\n      if not is_chatting(): chat_window()\n      log_message(data[2]+ \": \"+data[MESSAGE])\n      if data[MESSAGE] == \"TERMINATE\": \n        win.destroy()\n        reply = terminate\n      else: \n        reply = data\n\n    elif data[STATUS] == \"TERMINATE\":\n      log(\"terminate\")\n      win.destoy()\n      chat_conn.close()\n      peer_socket.close()\n      win.destroy()\n      continue\n\n\n    # elif data[STATUS] == \"DELIVERED\": \n    #   log(\"Delivered\")\n    #   log(data[MESSAGE])\n    #   peer_socket.close()\n    #   continue\n    elif data[STATUS] == \"REQUEST\":\n      tree = ET.parse(USERNAME+\"/\"+USERNAME+\".xml\")\n      profile[3] = ET.tostring(tree.getroot())  \n      log(profile)\n      reply = profile\n\n    if reply != None:\n      log(\"Sending:\")\n      log(reply)\n      return_message = pickle.dumps(reply)\n      peer_socket.send(return_message)\n    peer_socket.close()\n\n  tcp_socket.close()\n\n#######################################\n##              MAIN                 ##\n#######################################\n\nif __name__ == '__main__':\n  listener = threading.Thread(target = peer_listener)\n  listener.start()\n\n  root.mainloop()\n",
+			"file": "/Users/codycallahan/Desktop/cosn2/client.py",
+			"file_size": 8157,
+			"file_write_time": 130269344420000000,
+			"settings":
+			{
+				"buffer_size": 8158,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"command_palette":
+	{
+		"height": 375.0,
+		"selected_items":
+		[
+			[
+				"install",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 435.0
+	},
+	"console":
+	{
+		"height": 126.0,
+		"history":
+		[
+			"import urllib.request,os; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); open(os.path.join(ipp, pf), 'wb').write(urllib.request.urlopen( 'http://sublime.wbond.net/' + pf.replace(' ','%20')).read())"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/Users/codycallahan/Desktop/cosn/client_test.py",
+		"/Users/codycallahan/Desktop/cosn/imnicuhtine/friends/cody.xml",
+		"/Users/codycallahan/Desktop/cosn/cody/cody_content.xml",
+		"/Users/codycallahan/Desktop/cosn/cody.xml",
+		"/Users/codycallahan/Desktop/cosn/README.md",
+		"/Users/codycallahan/Desktop/cosn/client.py",
+		"/Users/codycallahan/Desktop/cosn/temp.notes",
+		"/Users/codycallahan/Desktop/cosn/server.py",
+		"/Users/codycallahan/Desktop/cosn/client1.py",
+		"/Users/codycallahan/Desktop/cosn/.gitignore",
+		"/Users/codycallahan/Desktop/cosn/index.html",
+		"/Users/codycallahan/Documents/shortstack_apps/shortstack-designer/app/views/working_tabs/knockout_templates/_app_database_template.html.haml",
+		"/Users/codycallahan/Documents/shortstack_apps/shortstack-designer/app/assets/javascripts/knockout/custom_bindings/layers_panel.js.coffee",
+		"/Users/codycallahan/Documents/shortstack_apps/shortstack-designer/app/assets/javascripts/knockout/view_models/app.js.coffee",
+		"/Users/codycallahan/Documents/shortstack_apps/shortstack-designer/app/controllers/widgets_controller.rb",
+		"/Users/codycallahan/Documents/shortstack_apps/shortstack-designer/app/views/working_tabs/_layers_panel.html.haml",
+		"/Users/codycallahan/Documents/shortstack_apps/shortstack-designer/config/routes.rb",
+		"/Users/codycallahan/Documents/shortstack_apps/shortstack-designer/app/views/working_tabs/knockout_templates/_widgets_template.html.haml",
+		"/Users/codycallahan/Documents/shortstack_apps/shortstack-designer/app/views/working_tabs/_publisher_panel.html.haml",
+		"/Users/codycallahan/Desktop/security_cheat_sheet.txt",
+		"/Users/codycallahan/Desktop/networking_cheat_sheet.txt",
+		"/Users/codycallahan/Library/Application Support/Sublime Text 3/Packages/User/Preferences.sublime-settings",
+		"/Users/codycallahan/Library/Application Support/Sublime Text 3/Packages/Default/Preferences.sublime-settings",
+		"/Users/codycallahan/Desktop/todo_notes",
+		"/Users/codycallahan/Library/Application Support/Sublime Text 3/Packages/User/Default (OSX).sublime-keymap",
+		"/Users/codycallahan/Documents/shortstack_apps/shortstack-designer/app/assets/javascripts/knockout/custom_bindings/utility.js.coffee",
+		"/Users/codycallahan/Documents/shortstack_apps/shortstack-designer/app/assets/javascripts/knockout/view_models/link.js.coffee",
+		"/Users/codycallahan/Library/Application Support/Sublime Text 3/Packages/Default/Default (OSX).sublime-keymap"
+	],
+	"find":
+	{
+		"height": 37.0
+	},
+	"find_in_files":
+	{
+		"height": 95.0,
+		"where_history":
+		[
+			"",
+			"shortstack-designer/*.js.coffee",
+			""
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"is_chatting",
+			"tcp_sock",
+			"&&",
+			"sendto_peer",
+			"chat",
+			"chat[",
+			"friend_data",
+			"log_message",
+			"is_chatting",
+			"chat",
+			"befriend_user",
+			"friend",
+			"confirm",
+			"data[",
+			"befriend_user",
+			"friend",
+			"client_socket",
+			"HOST",
+			"(HOST",
+			"tcp_socket",
+			"log",
+			"pong_user",
+			"chatting",
+			"s.",
+			"dialog",
+			"confirm",
+			"selectedWidget",
+			"add to another",
+			"publications",
+			"dialog",
+			"hotspotPosition",
+			"hotspotPosition()",
+			"dragAndSize",
+			"dragAndSIze",
+			"hotspotChanged",
+			"draggable",
+			"super+k\", \"super+b",
+			"ctrl+k",
+			"command+",
+			"draggable",
+			"db",
+			"dialog",
+			"@image",
+			"image",
+			"gallery",
+			"image()",
+			"image = ko.",
+			"galleryitem",
+			"gallery_item"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"conn"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 1,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "/Users/codycallahan/Desktop/cosn2/server.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3375,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								103,
+								103
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "/Users/codycallahan/Desktop/cosn2/client.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 8158,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								129,
+								129
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 36.0
+	},
+	"input":
+	{
+		"height": 35.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"project": "cosn_copy.sublime-project",
+	"replace":
+	{
+		"height": 46.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+			[
+				"app.",
+				"app/assets/javascripts/knockout/view_models/app.js.coffee"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"selected_items":
+		[
+			[
+				"",
+				"~/Desktop/cosn.sublime-project"
+			]
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 110.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
