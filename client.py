@@ -4,6 +4,8 @@ import pickle
 import sys
 import threading
 from tkinter import * 
+import xml.dom.minidom
+import xml.etree.ElementTree as ET
 
 #####################
 ## SOCKET SETUP
@@ -34,6 +36,8 @@ confirm   = ["CONFIRM", USERNAME]              # Response => none
 busy      = ["BUSY", USERNAME]                 # Response => none
 chat      = ["CHAT", 'msg', "username"]        # Response => DELIVERED
 delivered = ["DELIVERED", "delivered"]         # Response => none
+request   = ["REQUEST", "user", "ver"]         # Response => PROFILE
+profile   = ["PROFILE", USERNAME, "v", "file"] # Response => none
 
 initial_load = True
 chat_flag = False # chatting flag
@@ -70,13 +74,27 @@ def execute_command():
     send_message = befriend_user(data)
     peer = True
 
+  elif command == "REQUEST":
+    data = query_user(username.get())
+    send_message = request_profile(data, 1)
+    peer = True
+
+
   if server: 
     client_socket.sendto(pickle.dumps(send_message), SERVER_ADDR)
     recv_data, addr = client_socket.recvfrom(1024)
     data = pickle.loads(recv_data) 
     log(data)
 
-  elif peer: log(sendto_peer(data, send_message))
+  elif peer: 
+    response = sendto_peer(data, send_message)
+    if response[STATUS] == "PROFILE":
+      root = ET.fromstring(response[3])
+      tree = ET.ElementTree(root)
+      tree.write(USERNAME+"/friends/"+response[MESSAGE]+".xml")
+      response[3] = "FILE"
+
+    log(response)
 
 ####################
 ## GUI SETUP 
@@ -96,7 +114,7 @@ c_label.pack()
 var = StringVar(root)
 var.set("Register") # initial value
 
-option = OptionMenu(root, var, "Register", "Query", "Logout", "Ping", "Friend", "Chat")
+option = OptionMenu(root, var, "Register", "Query", "Logout", "Ping", "Friend", "Chat", "Request", "Get")
 option.config(width=10)
 option.pack()
 
@@ -244,6 +262,12 @@ def pong_user():
   pong[3] = PORT
   return pong
 
+def request_profile(user, version):
+  request[MESSAGE] = user[MESSAGE]
+  request[2] = version
+  return request
+
+
 def befriend_user(user):
   friend[MESSAGE] = user[MESSAGE]
   return friend
@@ -278,6 +302,12 @@ def peer_listener():
     #   log(data[MESSAGE])
     #   peer_socket.close()
     #   continue
+    elif data[STATUS] == "REQUEST":
+      tree = ET.parse(USERNAME+"/"+USERNAME+".xml")
+      profile[3] = ET.tostring(tree.getroot())  
+      log(profile)
+      reply = profile
+
     if reply != None:
       log("Sending:")
       log(reply)
