@@ -170,6 +170,7 @@ def sendto_peer(data, send_message):
     return
 
   recv_data, addr = chat_conn.recvfrom(1024)
+  chat_conn.close()
   return pickle.loads(recv_data) 
 
 
