@@ -4,6 +4,12 @@ import pickle
 import threading
 import server_functions
 import server_gui
+import sqlite3
+
+#Connect to server and print message 
+server_socket = socket(AF_INET, SOCK_DGRAM)  
+server_socket.bind(('', 9000))
+print("(9000) UDP Server Waiting for client...")
 
 def probe_server():
   # Connect to sqlite database and print success message
@@ -44,4 +50,4 @@ if __name__ == '__main__':
   listener = threading.Thread(target = probe_server)
   listener.start()
 
-  root.mainloop()
+  view.start()

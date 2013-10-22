@@ -1,23 +1,22 @@
 from tkinter import * 
+from socket import *
 
 class ServerGui:
   def __init__(self):
-    #Connect to server and print message 
-    self.server_socket = socket(AF_INET, SOCK_DGRAM)  
-    self.server_socket.bind(('', 9000))
-    print("(9000) UDP Server Waiting for client...")
-
     self.root = Tk()
-    self.root.setTitle("Server")
+    self.setTitle("Server")
+    self.setGeometry("300x350")
+    self.initServerLabel("Server Log Messages")
+    self.initListBox()
 
   def setTitle(self, title):
     self.root.title(title)
 
   def setGeometry(self, geo_str):
-    root.geometry("300x350")
+    self.root.geometry(geo_str)
 
-  def initServerLabel(self, geo_str):
-    Label(self.root, text = "Server Log Messages").pack()
+  def initServerLabel(self, lbl_str):
+    Label(self.root, text = lbl_str).pack()
 
   def initListBox(self):  
     scrollbar = Scrollbar(self.root)
@@ -33,3 +32,6 @@ class ServerGui:
 
   def log(self, message):
     self.listbox.insert(END, message)
+
+  def start(self):
+    self.root.mainloop()
