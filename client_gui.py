@@ -3,6 +3,9 @@ from socket import *
 
 
 class ClientGui:
+  ############################################
+  # Initialize gui class with main window
+  ############################################
   def __init__(self):
     self.root = Tk()
     self.chat_message = StringVar()
@@ -28,6 +31,9 @@ class ClientGui:
 
     self.createLabel("Client Log Messages", self.root)
     self.createLogBox(self.listbox, self.root)
+  ############################################
+  # Set configurations for windows
+  ############################################
 
   def setTitle(self, title, window):
     window.title(title)
@@ -35,6 +41,10 @@ class ClientGui:
   def setGeometry(self, geo_str, window):
     window.geometry(geo_str)
 
+  ############################################
+  # Create different types of widgets most of 
+  # which return the widget created
+  ############################################
   def createLabel(self, lbl_str, window):
     return Label(window, text = lbl_str, anchor=W, width=30).pack()
 
@@ -61,6 +71,10 @@ class ClientGui:
     log_box.config(width=65, height=15)
     log_box.pack(padx=(10, 0), pady=(0, 10))
 
+
+  ############################################
+  # Create different windows that will pop up
+  ############################################
   def openChatMenu(self):
     self.win = Toplevel()
 
@@ -78,5 +92,8 @@ class ClientGui:
     self.createButton("Send", None, frame).pack(side=RIGHT)
 
 
+  ############################################
+  # Start the GUI event loop
+  ############################################
   def start(self):
     self.root.mainloop()
