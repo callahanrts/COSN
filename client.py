@@ -36,6 +36,7 @@ confirm   = ["CONFIRM", USERNAME]              # Response => none
 busy      = ["BUSY", USERNAME]                 # Response => none
 chat      = ["CHAT", 'msg', "username"]        # Response => DELIVERED
 delivered = ["DELIVERED", "delivered"]         # Response => none
+terminate = ["TERMINATE", USERNAME]            # Response => none
 request   = ["REQUEST", "user", "ver"]         # Response => PROFILE
 profile   = ["PROFILE", USERNAME, "v", "file"] # Response => none
 
@@ -78,6 +79,9 @@ def execute_command():
     data = query_user(username.get())
     send_message = request_profile(data, 1)
     peer = True
+
+  # elif command == "GET":
+  #   data = 
 
 
   if server: 
@@ -149,6 +153,7 @@ listbox.pack(padx=(10, 0), pady=(0, 10))
 chat_message = StringVar()
 messaging = IntVar()
 chatbox = None
+win = None
 
 ###########################
 ## Event Listeners
@@ -170,6 +175,7 @@ def sendto_peer(data, send_message):
 
 def chat_window():
   # create child window
+  global win
   win = Toplevel()
 
   # Chat Log
@@ -184,6 +190,9 @@ def chat_window():
 
   # Username Label
   Label(win, text = "Chat Message: ", anchor=W, width=30).pack()
+
+  # Command Label
+  Label(win, text = "TERMINATE to quit chat", anchor=W, width=30).pack()
 
   # Chat input
   friend_data = query_user(username.get())
@@ -283,6 +292,7 @@ def peer_listener():
     peer_socket, addr = tcp_socket.accept()
     recv_data, addr = peer_socket.recvfrom(1024)
     data = pickle.loads(recv_data) 
+    global win
     log(data)
     if data[STATUS] == "PING":
       reply = pong_user()
@@ -294,8 +304,20 @@ def peer_listener():
       username.set(data[2])
       if not is_chatting(): chat_window()
       log_message(data[2]+ ": "+data[MESSAGE])
+      if data[MESSAGE] == "TERMINATE": 
+        win.destroy()
+        reply = terminate
+      else: 
+        reply = data
 
-      reply = data
+    elif data[STATUS] == "TERMINATE":
+      log("terminate")
+      win.destoy()
+      chat_conn.close()
+      peer_socket.close()
+      win.destroy()
+      continue
+
 
     # elif data[STATUS] == "DELIVERED": 
     #   log("Delivered")
