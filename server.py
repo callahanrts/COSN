@@ -1,8 +1,8 @@
 from socket import *
+from server_functions import *
 import time
 import pickle
 import threading
-import server_functions
 import server_gui
 import sqlite3
 
@@ -27,21 +27,26 @@ def probe_server():
     command = request[0]
 
     if command == "REGISTER":
-      return_message = pickle.dumps(register_user(request, conn))
+      reply = register_user(request, conn)
+      return_message = pickle.dumps(reply)
 
     elif command == "QUERY":
-      return_message = pickle.dumps(query_user(request, conn))
+      reply = query_user(request, conn)
+      return_message = pickle.dumps(reply)
 
     elif command == "LOGOUT":
-      return_message = pickle.dumps(logout_user(request[1]))
+      reply = logout_user(request[1])
+      return_message = pickle.dumps(reply)
 
     elif command == "DOWN": 
-      return_message = pickle.dumps(down_user(request[1]))
+      reply = down_user(request[1])
+      return_message = pickle.dumps(reply)
 
     else:
-      log("Invalid data from client ( " ,address[0], " " , address[1] , " ): ")
-      log(command)
+      view.log("Invalid data from client ( " ,address[0], " " , address[1] , " ): ")
+      view.log(command)
 
+    view.log(reply)
     server_socket.sendto(return_message, address)
 
 
