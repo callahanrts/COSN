@@ -86,7 +86,7 @@ def execute_command():
 root = Tk()
 
 root.title(USERNAME)
-root.geometry("500x300")
+root.geometry("300x300")
 
 # Command Label
 c_label = Label(root, text = "Command", anchor=W)
@@ -161,16 +161,14 @@ def chat_window():
 
   global chatbox
   chatbox = Listbox(win)
-  chatbox.config(width=65, height=15)
+  chatbox.config(width=30, height=10)
   chatbox.pack(padx=(10, 0), pady=(0, 10))
 
   # Username Label
   Label(win, text = "Chat Message: ", anchor=W, width=30).pack()
 
   # Chat input
-  log("get friend data")
   friend_data = query_user(username.get())
-  log(friend_data)
 
   global messaging
   messaging.set(1)
@@ -272,17 +270,19 @@ def peer_listener():
       username.set(data[2])
       if not is_chatting(): chat_window()
       log_message(data[2]+ ": "+data[MESSAGE])
-      peer_socket.send(pickle.dumps(delivered))
-      continue
 
-    elif data[STATUS] == "DELIVERED": 
-      log("Delivered")
-      log(data[MESSAGE])
-      peer_socket.close()
-      continue
+      reply = data
 
-    return_message = pickle.dumps(reply)
-    peer_socket.send(return_message)
+    # elif data[STATUS] == "DELIVERED": 
+    #   log("Delivered")
+    #   log(data[MESSAGE])
+    #   peer_socket.close()
+    #   continue
+    if reply != None:
+      log("Sending:")
+      log(reply)
+      return_message = pickle.dumps(reply)
+      peer_socket.send(return_message)
     peer_socket.close()
 
   tcp_socket.close()
