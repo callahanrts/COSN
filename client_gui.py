@@ -4,7 +4,8 @@ from socket import *
 
 class ClientGui:
   ############################################
-  # Initialize gui class with main window
+  # Initialize gui class with some root 
+  # variables and initialize main window
   ############################################
   def __init__(self):
     self.root = Tk()
@@ -14,23 +15,7 @@ class ClientGui:
     self.chatbox = None
     self.win = None
 
-    self.setTitle("username", self.root)
-    self.setGeometry("300x300", self.root)
-
-    self.createLabel("Command", self.root)
-    self.command = StringVar()
-    self.command.set("Register")
-    self.createMenuButton(self.command, self.root)
-
-    self.createLabel("Username, if neccessary", self.root)
-
-    self.username = StringVar()
-    self.createInput(self.username, self.root)
-
-    self.createButton("Send", self.openChatMenu, self.root).pack()
-
-    self.createLabel("Client Log Messages", self.root)
-    self.createLogBox(self.listbox, self.root)
+    init_main_window()
   ############################################
   # Set configurations for windows
   ############################################
@@ -73,9 +58,28 @@ class ClientGui:
 
 
   ############################################
-  # Create different windows that will pop up
+  # Initialize Windows for GUI
   ############################################
-  def openChatMenu(self):
+  def initMainWindow(self):
+    self.setTitle("username", self.root)
+    self.setGeometry("300x300", self.root)
+
+    self.createLabel("Command", self.root)
+    self.command = StringVar()
+    self.command.set("Register")
+    self.createMenuButton(self.command, self.root)
+
+    self.createLabel("Username, if neccessary", self.root)
+
+    self.username = StringVar()
+    self.createInput(self.username, self.root)
+
+    self.createButton("Send", self.initChatMenu, self.root).pack()
+
+    self.createLabel("Client Log Messages", self.root)
+    self.createLogBox(self.listbox, self.root)
+
+  def initChatMenu(self):
     self.win = Toplevel()
 
     self.setGeometry("300x425", self.win)
@@ -91,6 +95,14 @@ class ClientGui:
     self.createButton("Terminate", None, frame).pack(side=LEFT)
     self.createButton("Send", None, frame).pack(side=RIGHT)
 
+  ############################################
+  # Functions to control GUI Elements
+  ############################################
+  def log(self, message):
+    self.listbox.insert(END, message)
+
+  def log_message(self, message):
+    self.chatbox.insert(END, message)
 
   ############################################
   # Start the GUI event loop
