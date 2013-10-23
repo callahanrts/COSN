@@ -15,7 +15,7 @@ class ClientGui:
     self.chatbox = None
     self.win = None
 
-    init_main_window()
+    self.initMainWindow()
   ############################################
   # Set configurations for windows
   ############################################
