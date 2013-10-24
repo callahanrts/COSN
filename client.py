@@ -1,10 +1,10 @@
 from socket import *
-import threading
+from threading import * 
 import sys
 import pickle
 
 # User Defined
-import client_gui
+from client_gui import * 
 from constants import *
 from servercmd import *
 from clientcmd import *
@@ -39,7 +39,6 @@ def event_listener(command, username):
 
   elif command == "LOGOUT":
     send_message = servecmd.logout_user()
-    print(send_message)
     server = True
 
   # elif command == "CHAT":
@@ -91,9 +90,9 @@ def peer_listener():
 
 if __name__ == '__main__':
   # Listen for incoming peer connections
-  listener = threading.Thread(target = peer_listener)
+  listener = Thread(target = peer_listener)
   listener.start()
 
   # Create GUI
-  view = client_gui.ClientGui(event_listener)
+  view = MainWindow(event_listener)
   view.start()
