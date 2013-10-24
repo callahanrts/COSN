@@ -5,7 +5,9 @@ import pickle
 
 # User Defined
 import client_gui
-import constants
+from constants import *
+from servercmd import *
+from clientcmd import *
 
 SERVER_ADDR = ("", 9000)
 # Command Line Arguments
@@ -34,8 +36,10 @@ if __name__ == '__main__':
   listener.start()
 
   # Initialize Commands Class
-  cmd = constants.Command(host, port, username)
-  print(cmd.ping)
+  cmd = Command(host, port, username)
+  servecmd = ServerCommands(cmd)
+  clientcmd = ClientCommands(cmd)
+  
   # Create GUI
   view = client_gui.ClientGui()
   view.start()
