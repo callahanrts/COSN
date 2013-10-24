@@ -15,10 +15,9 @@ class GuiBuilder:
   def createLabel(self, lbl_str, window):
     return Label(window, text = lbl_str, anchor=W, width=30).pack()
 
-  def createMenuButton(self, cmd_var, window):
-    option = OptionMenu(window, cmd_var, "Register", "Query", "Logout", "Ping", "Friend", "Chat", "Request", "Get")
+  def createMenuButton(self, cmd_var, options, window):
+    option = OptionMenu(window, cmd_var, *options)
     option.config(width=10)
-    option.pack()
     return option
 
   def createInput(self, textVar, window):

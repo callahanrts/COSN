@@ -27,7 +27,7 @@ cmd = Command(host, port, username)
 servecmd = ServerCommands(cmd)
 clientcmd = ClientCommands(cmd)
 
-def event_listener(command, username):
+def server_command_handler(command, username):
   global view
   if command == "REGISTER":
     send_message = servecmd.register_user()
@@ -41,7 +41,15 @@ def event_listener(command, username):
     send_message = servecmd.logout_user()
     server = True
 
-  # elif command == "CHAT":
+  udp_socket.sendto(pickle.dumps(send_message), SERVER_ADDR)
+  recv_data, addr = udp_socket.recvfrom(1024)
+  data = pickle.loads(recv_data) 
+  view.log(data)
+
+def peer_command_handler(command, username):
+  print(command)
+  print(username)
+  # if command == "CHAT":
   #   chat_window()
   #   peer = True
   #   return
@@ -60,11 +68,6 @@ def event_listener(command, username):
   #   data = query_user(username.get())
   #   send_message = request_profile(data, 1)
   #   peer = True
-  if server: 
-    udp_socket.sendto(pickle.dumps(send_message), SERVER_ADDR)
-    recv_data, addr = udp_socket.recvfrom(1024)
-    data = pickle.loads(recv_data) 
-    view.log(data)
 
   # elif peer: 
   #   response = sendto_peer(data, send_message)
@@ -94,5 +97,5 @@ if __name__ == '__main__':
   listener.start()
 
   # Create GUI
-  view = MainWindow(event_listener)
+  view = MainWindow(server_command_handler, peer_command_handler)
   view.start()

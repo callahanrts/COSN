@@ -29,29 +29,36 @@ class ChatWindow:
     self.chatbox.insert(END, message)
 
 class MainWindow:
-  def __init__(self, event_listener):
+  def __init__(self, server_command, peer_command):
     self.gb = GuiBuilder()
     self.root = Tk()
     self.listbox = None
 
-    self.initMainWindow(event_listener)
+    self.initMainWindow(server_command, peer_command)
 
   # Create the main window
-  def initMainWindow(self, event_listener):
+  def initMainWindow(self, server_command, peer_command):
     self.gb.setTitle("username", self.root)
     self.gb.setGeometry("300x300", self.root)
 
     self.gb.createLabel("Command", self.root)
-    self.command = StringVar()
-    self.command.set("Register")
-    self.gb.createMenuButton(self.command, self.root)
+    self.servecmd = StringVar()
+    self.servecmd.set("Register")
+    self.peercmd = StringVar()
+    self.peercmd.set("Friend")
+
+    frame = self.gb.createFrame(self.root)
+    frame.pack()
+    
+    self.gb.createMenuButton(self.servecmd, ["Register", "Query", "Logout"], frame).pack(side=LEFT)
+    self.gb.createMenuButton(self.peercmd, ["Friend", "Chat", "Request", "Get"], frame).pack(side=RIGHT)
 
     self.gb.createLabel("Username, if neccessary", self.root)
 
     self.username = StringVar()
     self.gb.createInput(self.username, self.root)
 
-    self.gb.createButton("Send", lambda: event_listener(self.command.get().upper(), self.username.get()), self.root).pack()
+    self.gb.createButton("Send", lambda: server_command(self.command.get().upper(), self.username.get()), self.root).pack()
 
     self.gb.createLabel("Client Log Messages", self.root)
     self.listbox = self.gb.createLogBox(self.root)
