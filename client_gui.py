@@ -7,7 +7,7 @@ class ClientGui:
   # Initialize gui class with some root 
   # variables and initialize main window
   ############################################
-  def __init__(self):
+  def __init__(self, event_listener):
     self.root = Tk()
     self.chat_message = StringVar()
     self.messaging = IntVar()
@@ -15,7 +15,7 @@ class ClientGui:
     self.chatbox = None
     self.win = None
 
-    self.initMainWindow()
+    self.initMainWindow(event_listener)
   ############################################
   # Set configurations for windows
   ############################################
@@ -48,19 +48,19 @@ class ClientGui:
   def createFrame(self, window):
     return Frame(window)
 
-  def createLogBox(self, log_box, window):
+  def createLogBox(self, window):
     sb = Scrollbar(window)
     sb.pack(side=RIGHT, fill=Y, pady=(0, 10), padx=(0, 10))
 
     log_box = Listbox(window)
     log_box.config(width=65, height=15)
     log_box.pack(padx=(10, 0), pady=(0, 10))
-
+    return log_box
 
   ############################################
   # Initialize Windows for GUI
   ############################################
-  def initMainWindow(self):
+  def initMainWindow(self, event_listener):
     self.setTitle("username", self.root)
     self.setGeometry("300x300", self.root)
 
@@ -74,17 +74,17 @@ class ClientGui:
     self.username = StringVar()
     self.createInput(self.username, self.root)
 
-    self.createButton("Send", self.initChatMenu, self.root).pack()
+    self.createButton("Send", lambda: event_listener(self.command.get().upper(), self.username.get()), self.root).pack()
 
     self.createLabel("Client Log Messages", self.root)
-    self.createLogBox(self.listbox, self.root)
+    self.listbox = self.createLogBox(self.root)
 
   def initChatMenu(self):
     self.win = Toplevel()
 
     self.setGeometry("300x425", self.win)
     self.createLabel("Chat Log Messages", self.win)
-    self.createLogBox(self.chatbox, self.win)
+    self.chatbox = self.createLogBox(self.win)
 
     self.createLabel("Chat Message: ", self.win)
     self.createLabel("TERMINATE to quit chat", self.win)
