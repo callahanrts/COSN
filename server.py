@@ -35,11 +35,11 @@ def probe_server():
       return_message = pickle.dumps(reply)
 
     elif command == "LOGOUT":
-      reply = logout_user(request[1])
+      reply = logout_user(request[1], conn)
       return_message = pickle.dumps(reply)
 
     elif command == "DOWN": 
-      reply = down_user(request[1])
+      reply = down_user(request[1], conn)
       return_message = pickle.dumps(reply)
 
     else:

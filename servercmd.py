@@ -10,7 +10,7 @@ class ServerCommands:
     return self.constants.query
 
   def logout_user(self): 
-    return logout
+    return self.constants.logout
 
   def down_user(self, username):
     down[MESSAGE] = username

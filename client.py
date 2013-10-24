@@ -29,7 +29,6 @@ clientcmd = ClientCommands(cmd)
 
 def event_listener(command, username):
   global view
-  print(command)
   if command == "REGISTER":
     send_message = servecmd.register_user()
     server = True
@@ -39,7 +38,8 @@ def event_listener(command, username):
     server = True
 
   elif command == "LOGOUT":
-    send_message = logout_user()
+    send_message = servecmd.logout_user()
+    print(send_message)
     server = True
 
   # elif command == "CHAT":

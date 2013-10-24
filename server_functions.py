@@ -5,8 +5,8 @@ def remove_user_from_table(username, conn):
   conn.commit()
 
 def logout_user(username, conn): 
-  remove_user_from_table(username)
-  return ["User was logged out successully"]
+  remove_user_from_table(username, conn)
+  return [username + " was logged out successully"]
 
 def query_user(request, conn):
   cursor = conn.execute("SELECT * FROM online_users WHERE username = ? LIMIT 1", [str(request[1])])
