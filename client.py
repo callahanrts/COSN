@@ -27,58 +27,74 @@ cmd = Command(host, port, username)
 servecmd = ServerCommands(cmd)
 clientcmd = ClientCommands(cmd)
 
-def server_command_handler(command, username):
+def server_command_handler(command, user):
   global view
   if command == "REGISTER":
     send_message = servecmd.register_user()
-    server = True
 
   elif command == "QUERY":
-    send_message = servecmd.query_user(username)
-    server = True
+    send_message = servecmd.query_user(user)
 
   elif command == "LOGOUT":
     send_message = servecmd.logout_user()
-    server = True
 
+  view.log(send_udp(send_message))
+
+def send_udp(send_message):
   udp_socket.sendto(pickle.dumps(send_message), SERVER_ADDR)
   recv_data, addr = udp_socket.recvfrom(1024)
-  data = pickle.loads(recv_data) 
-  view.log(data)
+  return pickle.loads(recv_data) 
 
-def peer_command_handler(command, username):
-  print(command)
-  print(username)
+def peer_command_handler(command, user):
+  # Create socket to connect with a user
+  chat_conn = socket(AF_INET, SOCK_STREAM)  
+
+  if command == "FRIEND":
+    send_message = clientcmd.befriend_user(user)
+
   # if command == "CHAT":
   #   chat_window()
   #   peer = True
   #   return
 
   # elif command == "PING":
-  #   data = query_user(username.get())
+  #   data = query_user(user)
   #   send_message = ping_user(data)
   #   peer = True
 
   # elif command == "FRIEND":
-  #   data = query_user(username.get())
+  #   data = query_user(user)
   #   send_message = befriend_user(data)
   #   peer = True
 
   # elif command == "REQUEST":
-  #   data = query_user(username.get())
+  #   data = query_user(user)
   #   send_message = request_profile(data, 1)
   #   peer = True
 
-  # elif peer: 
-  #   response = sendto_peer(data, send_message)
-  #   if response[STATUS] == "PROFILE":
-  #     root = ET.fromstring(response[3])
-  #     tree = ET.ElementTree(root)
-  #     tree.write(USERNAME+"/friends/"+response[MESSAGE]+".xml")
-  #     response[3] = "FILE"
+#  response = sendto_peer(data, send_message)
+  
+  # if response[STATUS] == "PROFILE":
+  #   root = ET.fromstring(response[3])
+  #   tree = ET.ElementTree(root)
+  #   tree.write(USERNAME+"/friends/"+response[MESSAGE]+".xml")
+  #   response[3] = "FILE"
 
   #   log(response)
 
+  try: 
+    user_data = send_udp(servecmd.query_user(user))
+    print(user_data)
+    chat_conn.connect((user_data[2], int(user_data[3])))
+    chat_conn.send(pickle.dumps(send_message))  
+  except: 
+    view.log("User is offline")
+    #down_user(user)
+    return
+
+  recv_data, addr = chat_conn.recvfrom(1024)
+  response = pickle.loads(recv_data) 
+  chat_conn.close()
 
 def peer_listener():
   tcp_socket = socket(AF_INET, SOCK_STREAM)
@@ -88,8 +104,9 @@ def peer_listener():
     peer_socket, addr = tcp_socket.accept()
     recv_data, addr = peer_socket.recvfrom(1024)
     data = pickle.loads(recv_data) 
-    log(data)
-
+    view.log(data)
+    if data[STATUS] == "FRIEND":
+      reply = cmd.confirm
 
 if __name__ == '__main__':
   # Listen for incoming peer connections
@@ -97,5 +114,5 @@ if __name__ == '__main__':
   listener.start()
 
   # Create GUI
-  view = MainWindow(server_command_handler, peer_command_handler)
+  view = MainWindow(server_command_handler, peer_command_handler, username)
   view.start()

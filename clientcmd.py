@@ -2,55 +2,39 @@ class ClientCommands:
   def __init__(self, constants):
     self.constants = constants
 
-  def sendto_peer(data, send_message):
-    chat_conn = socket(AF_INET, SOCK_STREAM)  
-    try: 
-      chat_conn.connect((data[2], int(data[3])))
-      chat_conn.send(pickle.dumps(send_message))  
-    except: 
-      log("User is offline")
-      down_user(username.get())
-      return
-
-    recv_data, addr = chat_conn.recvfrom(1024)
-    chat_conn.close()
-    return pickle.loads(recv_data) 
-
-  def reply_message(friend_data):
-    chat[MESSAGE] = chat_message.get()
-    log_message(USERNAME+": "+chat[MESSAGE])
+  def reply_message(self, friend_data):
+    chat[1] = chat_message.get()
+    log_message(USERNAME+": "+chat[1])
     chat[2] = USERNAME
     sendto_peer(friend_data, chat)
     return
 
-  def chatting(val):
+  def chatting(self, val):
     chat_flat = val
 
-  def is_chatting():
+  def is_chatting(self):
     global messaging
     if messaging.get() == 1:
       return True
     return False
 
-
-  def ping_user(user):
-    ping[MESSAGE] = user[MESSAGE]
+  def ping_user(self, user):
+    ping[1] = user[1]
     ping[2] = user[2]
     ping[3] = user[3]
     return ping
 
-  def pong_user():
-    pong[MESSAGE] = USERNAME
+  def pong_user(self):
+    pong[1] = USERNAME
     pong[2] = HOST
     pong[3] = PORT
     return pong
 
-  def request_profile(user, version):
-    request[MESSAGE] = user[MESSAGE]
+  def request_profile(self, user, version):
+    request[1] = user[1]
     request[2] = version
     return request
 
-
-  def befriend_user(user):
-    friend[MESSAGE] = user[MESSAGE]
-    return friend
+  def befriend_user(self, user):
+    self.constants.friend[1] = user
+    return self.constants.friend

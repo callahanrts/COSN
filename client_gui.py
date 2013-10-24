@@ -29,16 +29,16 @@ class ChatWindow:
     self.chatbox.insert(END, message)
 
 class MainWindow:
-  def __init__(self, server_command, peer_command):
+  def __init__(self, server_command, peer_command, title):
     self.gb = GuiBuilder()
     self.root = Tk()
     self.listbox = None
 
-    self.initMainWindow(server_command, peer_command)
+    self.initMainWindow(server_command, peer_command, title)
 
   # Create the main window
-  def initMainWindow(self, server_command, peer_command):
-    self.gb.setTitle("username", self.root)
+  def initMainWindow(self, server_command, peer_command, title):
+    self.gb.setTitle(title, self.root)
     self.gb.setGeometry("300x300", self.root)
 
     self.gb.createLabel("Command", self.root)
@@ -50,15 +50,15 @@ class MainWindow:
     frame = self.gb.createFrame(self.root)
     frame.pack()
     
-    self.gb.createMenuButton(self.servecmd, ["Register", "Query", "Logout"], frame).pack(side=LEFT)
-    self.gb.createMenuButton(self.peercmd, ["Friend", "Chat", "Request", "Get"], frame).pack(side=RIGHT)
+    self.gb.createMenuButton(self.servecmd, ["Register", "Query", "Logout"], frame).grid(row=0, column=0)
+    self.gb.createButton("Send (server)", lambda: server_command(self.servecmd.get().upper(), self.username.get()), frame).grid(row=0, column=1)
+    self.gb.createMenuButton(self.peercmd, ["Friend", "Chat", "Request", "Get"], frame).grid(row=1, column=0)
+    self.gb.createButton("Send (client)", lambda: peer_command(self.peercmd.get().upper(), self.username.get()), frame).grid(row=1, column=1)    
 
     self.gb.createLabel("Username, if neccessary", self.root)
 
     self.username = StringVar()
     self.gb.createInput(self.username, self.root)
-
-    self.gb.createButton("Send", lambda: server_command(self.command.get().upper(), self.username.get()), self.root).pack()
 
     self.gb.createLabel("Client Log Messages", self.root)
     self.listbox = self.gb.createLogBox(self.root)
