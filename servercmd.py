@@ -6,11 +6,8 @@ class ServerCommands:
     return self.constants.register
 
   def query_user(self, username): 
-    query[MESSAGE] = username
-    client_socket.sendto(pickle.dumps(query), SERVER_ADDR)
-    recv_data, addr = client_socket.recvfrom(1024)
-    data = pickle.loads(recv_data) 
-    return data
+    self.constants.query[1] = username
+    return self.constants.query
 
   def logout_user(self): 
     return logout

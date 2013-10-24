@@ -29,17 +29,18 @@ clientcmd = ClientCommands(cmd)
 
 def event_listener(command, username):
   global view
+  print(command)
   if command == "REGISTER":
     send_message = servecmd.register_user()
     server = True
 
-  # elif command == "QUERY":
-  #   data = log(query_user(username.get()))
-  #   return
+  elif command == "QUERY":
+    send_message = servecmd.query_user(username)
+    server = True
 
-  # elif command == "LOGOUT":
-  #   send_message = logout_user()
-  #   server = True
+  elif command == "LOGOUT":
+    send_message = logout_user()
+    server = True
 
   # elif command == "CHAT":
   #   chat_window()
