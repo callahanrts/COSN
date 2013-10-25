@@ -1,6 +1,7 @@
 from tkinter import * 
 from socket import *
 from gui_builder import * 
+import pickle
 
 class ChatWindow:
   def __init__(self):
@@ -14,7 +15,7 @@ class ChatWindow:
     self.win = Toplevel()
 
     self.gb.setGeometry("300x425", self.win)
-    self.gb.setTitle(my_username + " > " + user_data[1], self.win)
+    self.gb.setTitle(my_username + " > " + user_data[4], self.win)
     self.gb.createLabel("Chat Log Messages", self.win)
     self.chatbox = self.gb.createLogBox(self.win)
 
@@ -25,27 +26,13 @@ class ChatWindow:
     frame = self.gb.createFrame(self.win)
     frame.pack()
     self.gb.createButton("Terminate", None, frame).pack(side=LEFT)
-    self.gb.createButton("Send", lambda: self.send_chat(self.chat_message.get()) , frame).pack(side=RIGHT)
+    self.gb.createButton("Send", lambda: self.send_chat(self.chat_message.get()), frame).pack(side=RIGHT)
 
-  def send_chat(message):
-    self.chat_socket.bind((host, port))
-    self.chat_socket.listen(1024)
-
-    peer_socket, addr = self.chat_socket.accept()
-    recv_data, addr = peer_socket.recvfrom(1024)
-    while 1:
-      data = pickle.loads(recv_data) 
-      view.log(data)
-
-      if data[0] == "FRIEND":
-        reply = ["DELIVERED", "delivered"]
-
-      return_message = pickle.dumps(reply)
-      peer_socket.send(return_message)
-
-    peer_socket.close()
-    tcp_socket.close()
-
+  def send_chat(self, message, chat_socket):
+    return_message = pickle.dumps(message)
+    chat_socket.send(return_message)
+    print(message)
+    print(chat_socket)
 
   def openChatWindow(self):
     self.initChatMenu()

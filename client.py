@@ -60,8 +60,8 @@ def peer_command_handler(command, user):
   elif command == "CHAT":
       # Create Chat GUI
     chat_window = ChatWindow()
-    chat_window.initChatMenu(user_data, username)
-    chat_conn.close()
+    chat_window.initChatMenu(user_data, username, chat_conn)
+    #chat_conn.close()
     return
 
   try:
@@ -91,11 +91,14 @@ def peer_listener():
     if data[0] == "FRIEND":
       reply = cmd.confirm
 
+    if data[0] == "CHAT": 
+      reply = cmd.delivered
+
     if reply != None:
       return_message = pickle.dumps(reply)
       peer_socket.send(return_message)
 
-      peer_socket.close()
+    peer_socket.close()
   
   tcp_socket.close()
 
