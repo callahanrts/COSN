@@ -2,6 +2,7 @@ from socket import *
 from threading import * 
 import sys
 import pickle
+import logging
 
 # User Defined
 from client_gui import * 
@@ -15,7 +16,6 @@ SERVER_ADDR = ("", 9000)
 host = str(sys.argv[1])
 port = int(sys.argv[2])
 username = str(sys.argv[3])
-
 
 # Create GUI Variable
 view = None
@@ -51,7 +51,6 @@ def send_chat(message):
 def peer_command_handler(command, user):
   # Create socket to connect with a user
   chat_conn = socket(AF_INET, SOCK_STREAM)
-  user = servecmd.query_user(user)
 
   user_data = send_udp(servecmd.query_user(user))
 
@@ -71,7 +70,8 @@ def peer_command_handler(command, user):
     recv_data, addr = chat_conn.recvfrom(1024)
     response = pickle.loads(recv_data) 
     view.log(response) 
-  except: 
+  except:
+    logging.exception("hm")
     view.log("User is offline")
     #down_user(username.get())
 
@@ -90,7 +90,6 @@ def peer_listener():
 
     if data[0] == "FRIEND":
       reply = cmd.confirm
-
 
     if reply != None:
       return_message = pickle.dumps(reply)
