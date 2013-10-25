@@ -46,14 +46,25 @@ def send_udp(send_message):
   udp_socket.close()
   return pickle.loads(recv_data) 
 
+def send_chat(message):
+  view.log(messag)
+
 def peer_command_handler(command, user):
   # Create socket to connect with a user
-  chat_conn = socket(AF_INET, SOCK_STREAM)  
+  chat_conn = socket(AF_INET, SOCK_STREAM)
+  user = servecmd.query_user(user)
+
+  user_data = send_udp(servecmd.query_user(user))
 
   if command == "FRIEND":
     send_message = clientcmd.befriend_user(user)
 
-  user_data = send_udp(servecmd.query_user(user))
+  elif command == "CHAT":
+      # Create Chat GUI
+    chat_window = ChatWindow()
+    chat_window.initChatMenu(user_data, username)
+    chat_conn.close()
+    return
 
   try:
     chat_conn.connect((user_data[2], int(user_data[3])))
@@ -62,8 +73,8 @@ def peer_command_handler(command, user):
     response = pickle.loads(recv_data) 
     view.log(response) 
   except: 
-    log("User is offline")
-    down_user(username.get())
+    view.log("User is offline")
+    #down_user(username.get())
 
   chat_conn.close()
 
@@ -89,26 +100,6 @@ def peer_listener():
       peer_socket.close()
   
   tcp_socket.close()
-
-  # while 1:
-  #   peer_connection, addr = tcp_socket.accept()
-  #   recv_data, addr = peer_connection.recvfrom(1024)
-  #   data = pickle.loads(recv_data) 
-  #   view.log(data)
-  #   if data[0] == "FRIEND":
-  #     reply = cmd.confirm
-
-  #   if data[0] == "CONFIRM": 
-  #     continue
-
-  #   view.log("Sending: ")
-  #   view.log(reply)
-  #   return_message = pickle.dumps(reply)
-  #   peer_connection.send(return_message)
-  #   peer_connection.close()
-
-  # tcp_socket.close()
-  # peer_listener()
 
 if __name__ == '__main__':
   # Listen for incoming peer connections

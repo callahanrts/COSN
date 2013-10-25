@@ -3,16 +3,18 @@ from socket import *
 from gui_builder import * 
 
 class ChatWindow:
-  def __init__(self, event_listener):
+  def __init__(self):
     self.gb = GuiBuilder()
     self.chat_message = StringVar()
     self.chatbox = None
     self.win = None
+    self.chat_socket = socket(AF_INET, SOCK_STREAM)
 
-  def initChatMenu(self):
+  def initChatMenu(self, user_data, my_username):
     self.win = Toplevel()
 
     self.gb.setGeometry("300x425", self.win)
+    self.gb.setTitle(my_username + " > " + user_data[1], self.win)
     self.gb.createLabel("Chat Log Messages", self.win)
     self.chatbox = self.gb.createLogBox(self.win)
 
@@ -23,7 +25,30 @@ class ChatWindow:
     frame = self.gb.createFrame(self.win)
     frame.pack()
     self.gb.createButton("Terminate", None, frame).pack(side=LEFT)
-    self.gb.createButton("Send", None, frame).pack(side=RIGHT)
+    self.gb.createButton("Send", lambda: self.send_chat(self.chat_message.get()) , frame).pack(side=RIGHT)
+
+  def send_chat(message):
+    self.chat_socket.bind((host, port))
+    self.chat_socket.listen(1024)
+
+    peer_socket, addr = self.chat_socket.accept()
+    recv_data, addr = peer_socket.recvfrom(1024)
+    while 1:
+      data = pickle.loads(recv_data) 
+      view.log(data)
+
+      if data[0] == "FRIEND":
+        reply = ["DELIVERED", "delivered"]
+
+      return_message = pickle.dumps(reply)
+      peer_socket.send(return_message)
+
+    peer_socket.close()
+    tcp_socket.close()
+
+
+  def openChatWindow(self):
+    self.initChatMenu()
 
   def log_message(self, message):
     self.chatbox.insert(END, message)
