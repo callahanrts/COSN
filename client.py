@@ -43,6 +43,7 @@ def server_command_handler(command, user):
 def send_udp(send_message):
   udp_socket.sendto(pickle.dumps(send_message), SERVER_ADDR)
   recv_data, addr = udp_socket.recvfrom(1024)
+  udp_socket.close()
   return pickle.loads(recv_data) 
 
 def peer_command_handler(command, user):
@@ -54,37 +55,39 @@ def peer_command_handler(command, user):
 
   user_data = send_udp(servecmd.query_user(user))
 
+  try:
+    chat_conn.connect((user_data[2], int(user_data[3])))
+    chat_conn.send(pickle.dumps(send_message)) 
+    recv_data, addr = chat_conn.recvfrom(1024)
+    response = pickle.loads(recv_data) 
+    view.log(response) 
+  except: 
+    log("User is offline")
+    down_user(username.get())
 
-  chat_conn.connect((user_data[2], int(user_data[3])))
-  chat_conn.send(pickle.dumps(send_message))  
-
-  recv_data, addr = chat_conn.recvfrom(1024)
-  response = pickle.loads(recv_data) 
-  view.log(response)
   chat_conn.close()
 
 def peer_listener():
   tcp_socket = socket(AF_INET, SOCK_STREAM)
   tcp_socket.bind((host, port))
-  tcp_socket.listen(1024)
+  while 1:
+    tcp_socket.listen(1024)
 
-  peer_socket, addr = tcp_socket.accept()
-  recv_data, addr = peer_socket.recvfrom(1024)
-  data = pickle.loads(recv_data) 
-  view.log(data)
+    peer_socket, addr = tcp_socket.accept()
+    recv_data, addr = peer_socket.recvfrom(1024)
+    data = pickle.loads(recv_data) 
+    view.log(data)
 
-  if data[0] == "FRIEND":
-    reply = data
+    if data[0] == "FRIEND":
+      reply = cmd.confirm
 
 
-  if reply != None:
-    view.log("Sending:")
-    view.log(reply)
-    return_message = pickle.dumps(reply)
-    peer_socket.send(return_message)
+    if reply != None:
+      return_message = pickle.dumps(reply)
+      peer_socket.send(return_message)
 
-  peer_socket.close()
-
+      peer_socket.close()
+  
   tcp_socket.close()
 
   # while 1:
