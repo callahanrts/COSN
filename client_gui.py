@@ -1,18 +1,20 @@
 from tkinter import * 
 from socket import *
 from gui_builder import * 
+import pickle
 
 class ChatWindow:
-  def __init__(self, event_listener):
+  def __init__(self):
     self.gb = GuiBuilder()
     self.chat_message = StringVar()
     self.chatbox = None
     self.win = None
 
-  def initChatMenu(self):
+  def initChatMenu(self, user_data, my_username, send_chat):
     self.win = Toplevel()
 
     self.gb.setGeometry("300x425", self.win)
+    self.gb.setTitle(my_username + " > " + user_data[4], self.win)
     self.gb.createLabel("Chat Log Messages", self.win)
     self.chatbox = self.gb.createLogBox(self.win)
 
@@ -23,7 +25,19 @@ class ChatWindow:
     frame = self.gb.createFrame(self.win)
     frame.pack()
     self.gb.createButton("Terminate", None, frame).pack(side=LEFT)
-    self.gb.createButton("Send", None, frame).pack(side=RIGHT)
+    self.gb.createButton("Send", lambda: send_chat(self.chat_message.get()), frame).pack(side=RIGHT)
+
+  # def send_chat(self, message):
+  #   return_message = pickle.dumps(message)
+  #   self.chat_socket.send(return_message)
+
+  #   recv_data, addr = chat_conn.recvfrom(1024)
+  #   response = pickle.loads(recv_data) 
+  #   view.log(response) 
+  #   print(message)
+
+  def openChatWindow(self):
+    self.initChatMenu()
 
   def log_message(self, message):
     self.chatbox.insert(END, message)
