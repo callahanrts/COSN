@@ -27,6 +27,9 @@ cmd = Command(host, port, username)
 servecmd = ServerCommands(cmd)
 clientcmd = ClientCommands(cmd)
 
+# Chat socket
+chat_conn = None
+
 def server_command_handler(command, user):
   global view
   if command == "REGISTER":
@@ -51,6 +54,7 @@ def send_chat(message):
   view.log(messag)
 
 def peer_command_handler(command, user):
+  global chat_conn
   # Create socket to connect with a user
   chat_conn = socket(AF_INET, SOCK_STREAM)
 
@@ -60,10 +64,11 @@ def peer_command_handler(command, user):
     send_message = clientcmd.befriend_user(user)
 
   elif command == "CHAT":
-      # Create Chat GUI
+    # Create Chat GUI
     chat_window = ChatWindow()
-    chat_window.initChatMenu(user_data, username, chat_conn)
-    #chat_conn.close()
+    chat_window.initChatMenu(user_data, username, send_chat)
+    chat_conn.connect((user_data[2], int(user_data[3])))
+    # chat_conn.close()
     return
 
   try:
@@ -79,7 +84,15 @@ def peer_command_handler(command, user):
 
   chat_conn.close()
 
+def send_chat(message):
+  global chat_conn
+  chat_conn.send(pickle.dumps(clientcmd.chat_message(message, username))) 
+  recv_data, addr = chat_conn.recvfrom(1024)
+  response = pickle.loads(recv_data) 
+  view.log(response) # Response should be "delivered"
+
 def peer_listener():
+  # Set up main, non-blocking, server socket to listen for tcp connections
   tcp_socket = socket(AF_INET, SOCK_STREAM)
   tcp_socket.setblocking(0)
   tcp_socket.bind((host, port))
@@ -125,6 +138,8 @@ def peer_listener():
           # Switch on the different types of messages or return original if not recognized
           if message[0] == "FRIEND":
             message_queues[s].put(pickle.dumps(cmd.confirm))
+          elif message[0] == "CHAT": 
+            message_queues[s].put(pickle.dumps(cmd.delivered))
           else:
             print("Command " + str(message[0]) + " not recognized")
             message_queues[s].put(data)
@@ -172,27 +187,8 @@ def peer_listener():
 
       # Remove message queue
       del message_queues[s]
-
-
-  # while 1:
-
-  #   peer_socket, addr = tcp_socket.accept()
-  #   recv_data, addr = peer_socket.recvfrom(1024)
-  #   data = pickle.loads(recv_data) 
-  #   view.log(data)
-
-  #   if data[0] == "FRIEND":
-  #     reply = cmd.confirm
-
-  #   if data[0] == "CHAT": 
-  #     reply = cmd.delivered
-
-  #   if reply != None:
-  #     return_message = pickle.dumps(reply)
-  #     peer_socket.send(return_message)
-
-  #   peer_socket.close()
   
+  # Close tcp connection when server exits
   tcp_socket.close()
 
 if __name__ == '__main__':

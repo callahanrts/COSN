@@ -9,9 +9,8 @@ class ChatWindow:
     self.chat_message = StringVar()
     self.chatbox = None
     self.win = None
-    self.chat_socket = socket(AF_INET, SOCK_STREAM)
 
-  def initChatMenu(self, user_data, my_username):
+  def initChatMenu(self, user_data, my_username, send_chat):
     self.win = Toplevel()
 
     self.gb.setGeometry("300x425", self.win)
@@ -26,13 +25,16 @@ class ChatWindow:
     frame = self.gb.createFrame(self.win)
     frame.pack()
     self.gb.createButton("Terminate", None, frame).pack(side=LEFT)
-    self.gb.createButton("Send", lambda: self.send_chat(self.chat_message.get()), frame).pack(side=RIGHT)
+    self.gb.createButton("Send", lambda: send_chat(self.chat_message.get()), frame).pack(side=RIGHT)
 
-  def send_chat(self, message, chat_socket):
-    return_message = pickle.dumps(message)
-    chat_socket.send(return_message)
-    print(message)
-    print(chat_socket)
+  # def send_chat(self, message):
+  #   return_message = pickle.dumps(message)
+  #   self.chat_socket.send(return_message)
+
+  #   recv_data, addr = chat_conn.recvfrom(1024)
+  #   response = pickle.loads(recv_data) 
+  #   view.log(response) 
+  #   print(message)
 
   def openChatWindow(self):
     self.initChatMenu()
