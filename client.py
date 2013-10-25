@@ -1,8 +1,10 @@
 from socket import *
 from threading import * 
+import select
 import sys
 import pickle
 import logging
+import queue
 
 # User Defined
 from client_gui import * 
@@ -79,26 +81,117 @@ def peer_command_handler(command, user):
 
 def peer_listener():
   tcp_socket = socket(AF_INET, SOCK_STREAM)
+  tcp_socket.setblocking(0)
   tcp_socket.bind((host, port))
-  while 1:
-    tcp_socket.listen(1024)
+  tcp_socket.listen(1024)
 
-    peer_socket, addr = tcp_socket.accept()
-    recv_data, addr = peer_socket.recvfrom(1024)
-    data = pickle.loads(recv_data) 
-    view.log(data)
+  # Sockets from which we expect to read
+  inputs = [ tcp_socket ]
 
-    if data[0] == "FRIEND":
-      reply = cmd.confirm
+  # Sockets to which we expect to write
+  outputs = [ ]
 
-    if data[0] == "CHAT": 
-      reply = cmd.delivered
+  # Outgoing message queues (socket:Queue)
+  message_queues = {}
 
-    if reply != None:
-      return_message = pickle.dumps(reply)
-      peer_socket.send(return_message)
+  while inputs:
+    print("===========================================================================")
+    # Wait for at least one of the sockets to be ready for processing
+    readable, writable, exceptional = select.select(inputs, outputs, inputs)
 
-    peer_socket.close()
+    # Handle inputs
+    for s in readable:
+      if s is tcp_socket:
+        connection, client_address = s.accept()
+        connection.setblocking(0)
+        inputs.append(connection)
+
+        # Give the connection a queue for data we want to send
+        message_queues[connection] = queue.Queue()
+        print("Inputs:")
+        print(inputs)
+
+      else:
+        data = s.recv(1024)
+        if data: # A readable client socket has data
+          # Parse message using pickle
+          message = pickle.loads(data)
+          view.log(message)
+
+          # Print to console for debugging
+          print("Readable client socket has data")
+          print(message)
+
+          # Switch on the different types of messages or return original if not recognized
+          if message[0] == "FRIEND":
+            message_queues[s].put(pickle.dumps(cmd.confirm))
+          else:
+            print("Command " + str(message[0]) + " not recognized")
+            message_queues[s].put(data)
+
+          # Add output channel for response
+          if s not in outputs:
+            outputs.append(s)
+
+        else: # Interpret empty result as closed connection
+          print("Peer dropped out, closing connection")
+          # Stop listening for input on the connection
+          if s in outputs:
+            outputs.remove(s)
+          inputs.remove(s)
+          s.close()
+
+          # Remove message queue
+          del message_queues[s]
+
+    # Handle outputs
+    for s in writable:
+      try:
+        next_msg = message_queues[s].get_nowait()
+      except queue.Empty:
+        # No messages waiting so stop checking for writability.
+        print(sys.stderr)
+        print('output queue for')
+        print(s.getpeername())
+        print('is empty')
+        outputs.remove(s)
+      else:
+        print(sys.stderr)
+        print('sending "%s" to %s' % (next_msg, s.getpeername()))
+        s.send(next_msg)
+
+    # Handle "exceptional conditions"
+    for s in exceptional:
+      print ('handling exceptional condition for')
+      print(s.getpeername())
+      # Stop listening for input on the connection
+      inputs.remove(s)
+      if s in outputs:
+        outputs.remove(s)
+      s.close()
+
+      # Remove message queue
+      del message_queues[s]
+
+
+  # while 1:
+
+  #   peer_socket, addr = tcp_socket.accept()
+  #   recv_data, addr = peer_socket.recvfrom(1024)
+  #   data = pickle.loads(recv_data) 
+  #   view.log(data)
+
+  #   if data[0] == "FRIEND":
+  #     reply = cmd.confirm
+
+  #   if data[0] == "CHAT": 
+  #     reply = cmd.delivered
+
+  #   if reply != None:
+  #     return_message = pickle.dumps(reply)
+  #     peer_socket.send(return_message)
+
+  #   peer_socket.close()
   
   tcp_socket.close()
 
