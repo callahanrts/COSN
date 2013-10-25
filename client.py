@@ -52,61 +52,60 @@ def peer_command_handler(command, user):
   if command == "FRIEND":
     send_message = clientcmd.befriend_user(user)
 
-  # if command == "CHAT":
-  #   chat_window()
-  #   peer = True
-  #   return
+  user_data = send_udp(servecmd.query_user(user))
 
-  # elif command == "PING":
-  #   data = query_user(user)
-  #   send_message = ping_user(data)
-  #   peer = True
 
-  # elif command == "FRIEND":
-  #   data = query_user(user)
-  #   send_message = befriend_user(data)
-  #   peer = True
-
-  # elif command == "REQUEST":
-  #   data = query_user(user)
-  #   send_message = request_profile(data, 1)
-  #   peer = True
-
-#  response = sendto_peer(data, send_message)
-  
-  # if response[STATUS] == "PROFILE":
-  #   root = ET.fromstring(response[3])
-  #   tree = ET.ElementTree(root)
-  #   tree.write(USERNAME+"/friends/"+response[MESSAGE]+".xml")
-  #   response[3] = "FILE"
-
-  #   log(response)
-
-  try: 
-    user_data = send_udp(servecmd.query_user(user))
-    print(user_data)
-    chat_conn.connect((user_data[2], int(user_data[3])))
-    chat_conn.send(pickle.dumps(send_message))  
-  except: 
-    view.log("User is offline")
-    #down_user(user)
-    return
+  chat_conn.connect((user_data[2], int(user_data[3])))
+  chat_conn.send(pickle.dumps(send_message))  
 
   recv_data, addr = chat_conn.recvfrom(1024)
   response = pickle.loads(recv_data) 
+  view.log(response)
   chat_conn.close()
 
 def peer_listener():
   tcp_socket = socket(AF_INET, SOCK_STREAM)
   tcp_socket.bind((host, port))
   tcp_socket.listen(1024)
-  while 1:
-    peer_socket, addr = tcp_socket.accept()
-    recv_data, addr = peer_socket.recvfrom(1024)
-    data = pickle.loads(recv_data) 
-    view.log(data)
-    if data[STATUS] == "FRIEND":
-      reply = cmd.confirm
+
+  peer_socket, addr = tcp_socket.accept()
+  recv_data, addr = peer_socket.recvfrom(1024)
+  data = pickle.loads(recv_data) 
+  view.log(data)
+
+  if data[0] == "FRIEND":
+    reply = data
+
+
+  if reply != None:
+    view.log("Sending:")
+    view.log(reply)
+    return_message = pickle.dumps(reply)
+    peer_socket.send(return_message)
+
+  peer_socket.close()
+
+  tcp_socket.close()
+
+  # while 1:
+  #   peer_connection, addr = tcp_socket.accept()
+  #   recv_data, addr = peer_connection.recvfrom(1024)
+  #   data = pickle.loads(recv_data) 
+  #   view.log(data)
+  #   if data[0] == "FRIEND":
+  #     reply = cmd.confirm
+
+  #   if data[0] == "CONFIRM": 
+  #     continue
+
+  #   view.log("Sending: ")
+  #   view.log(reply)
+  #   return_message = pickle.dumps(reply)
+  #   peer_connection.send(return_message)
+  #   peer_connection.close()
+
+  # tcp_socket.close()
+  # peer_listener()
 
 if __name__ == '__main__':
   # Listen for incoming peer connections
