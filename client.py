@@ -16,8 +16,6 @@ host = str(sys.argv[1])
 port = int(sys.argv[2])
 username = str(sys.argv[3])
 
-# UDP Socket to connect with server
-udp_socket = socket(AF_INET, SOCK_DGRAM)
 
 # Create GUI Variable
 view = None
@@ -41,9 +39,10 @@ def server_command_handler(command, user):
   view.log(send_udp(send_message))
 
 def send_udp(send_message):
+  # UDP Socket to connect with server
+  udp_socket = socket(AF_INET, SOCK_DGRAM)
   udp_socket.sendto(pickle.dumps(send_message), SERVER_ADDR)
   recv_data, addr = udp_socket.recvfrom(1024)
-  udp_socket.close()
   return pickle.loads(recv_data) 
 
 def send_chat(message):
