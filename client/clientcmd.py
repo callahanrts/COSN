@@ -6,10 +6,15 @@ class ClientCommands:
     self.constants.friend[1] = user
     return self.constants.friend
 
-  def chat_message(self, message, username):
+  def chat_message(self, message, username, counter):
     self.constants.chat[1] = message
     self.constants.chat[2] = username
+    self.constants.chat[3] = counter
     return self.constants.chat
+
+  def delivered_message(self, counter):
+    self.constants.delivered[1] = counter
+    return self.constants.delivered
 
   # def ping_user(self, user):
   #   ping[1] = user[1]

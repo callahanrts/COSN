@@ -34,6 +34,7 @@ clientcmd = ClientCommands(cmd)
 
 # Chat variables
 chatting_friend = None
+chat_counter = 1
 
 # Chat socket
 chat_conn = None
@@ -87,13 +88,14 @@ def peer_command_handler(command, user):
 
 # Current, single window chat
 def chat_command(message, user): 
-  global chat_conn
+  global chat_conn, chat_counter
   chat_conn = socket(AF_INET, SOCK_STREAM)
   user_data = send_udp(servecmd.query_user(user))
   view.log_message(username+": "+message)
   try:
     chat_conn.connect((user_data[2], int(user_data[3])))
-    chat_conn.send(pickle.dumps(clientcmd.chat_message(message, username))) 
+    chat_conn.send(pickle.dumps(clientcmd.chat_message(message, username, chat_counter))) 
+    chat_counter += 1
     recv_data, addr = chat_conn.recvfrom(1024)
     response = pickle.loads(recv_data) 
     view.log(response) 
@@ -149,7 +151,9 @@ def peer_listener():
           if message[0] == "FRIEND":
             message_queues[s].put(pickle.dumps(cmd.confirm))
           elif message[0] == "CHAT": 
-            message_queues[s].put(pickle.dumps(cmd.delivered))
+            global chat_message
+            chat_message = message[3]
+            message_queues[s].put(pickle.dumps(clientcmd.delivered_message(chat_message)))
             view.username.set(message[2])
             view.log_message(message[2]+": "+message[1])
 

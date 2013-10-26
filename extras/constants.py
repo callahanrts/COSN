@@ -14,8 +14,8 @@ class Command:
     self.friend    = ["FRIEND", ""]                     # Response => CONFIRM
     self.confirm   = ["CONFIRM", username]              # Response => none
     self.busy      = ["BUSY", username]                 # Response => none
-    self.chat      = ["CHAT", 'msg', "username"]        # Response => DELIVERED
-    self.delivered = ["DELIVERED", "delivered"]         # Response => none
+    self.chat      = ["CHAT", 'msg', "user", "ctr"]     # Response => DELIVERED
+    self.delivered = ["DELIVERED", "counter"]           # Response => none
     self.terminate = ["TERMINATE", username]            # Response => none
     self.request   = ["REQUEST", "user", "ver"]         # Response => PROFILE
     self.profile   = ["PROFILE", username, "v", "file"] # Response => none
