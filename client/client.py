@@ -42,7 +42,7 @@ chat_counter = 1
 chat_conn = None
 
 # Profile data
-profile = open("../users/"+username+"/"+username+".json")
+profile = open("../users/" + username + "/" + username + ".json")
 profile = json.load(profile)
 profile_version = 1
 
