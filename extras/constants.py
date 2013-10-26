@@ -18,4 +18,4 @@ class Command:
     self.delivered = ["DELIVERED", "counter"]           # Response => none
     self.terminate = ["TERMINATE", username]            # Response => none
     self.request   = ["REQUEST", "user", "ver"]         # Response => PROFILE
-    self.profile   = ["PROFILE", username, "v", "file"] # Response => none
+    self.profile   = ["PROFILE", username, "v", "jsfi"] # Response => none

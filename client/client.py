@@ -5,6 +5,7 @@ import sys
 import pickle
 import logging
 import queue
+import json
 
 # Append paths
 sys.path.append('../extras')
@@ -39,6 +40,11 @@ chat_counter = 1
 # Chat socket
 chat_conn = None
 
+# Profile data
+profile = open("../users/"+username+"/"+username+".json")
+profile = json.load(profile)
+profile_version = 1
+
 def server_command_handler(command, user):
   global view
   print(user)
@@ -64,6 +70,8 @@ def send_udp(send_message):
 
 def peer_command_handler(command, user):
   global chat_conn
+  request_for_profile = False
+
   # Create socket to connect with a user
   chat_conn = socket(AF_INET, SOCK_STREAM)
 
@@ -72,19 +80,30 @@ def peer_command_handler(command, user):
   if command == "FRIEND":
     send_message = clientcmd.befriend_user(user)
 
+  elif command == "REQUEST": 
+    send_message = clientcmd.request_profile(user, profile_version) # version but not needed yet
+    request_for_profile = True
+
   try:
     print(user_data)
     chat_conn.connect((user_data[2], int(user_data[3])))
     chat_conn.send(pickle.dumps(send_message)) 
     recv_data, addr = chat_conn.recvfrom(1024)
     response = pickle.loads(recv_data) 
-    view.log(response) 
+    if request_for_profile:
+      save_profile(response)
+    else:
+      view.log(response) 
   except:
     logging.exception("hm")
     view.log("User is offline")
     #down_user(username.get())
 
   chat_conn.close()
+
+def save_profile(data):
+  print("save profile")
+  print(data)
 
 # Current, single window chat
 def chat_command(message, user): 
@@ -150,12 +169,20 @@ def peer_listener():
           # Switch on the different types of messages or return original if not recognized
           if message[0] == "FRIEND":
             message_queues[s].put(pickle.dumps(cmd.confirm))
+
           elif message[0] == "CHAT": 
             global chat_message
             chat_message = message[3]
             message_queues[s].put(pickle.dumps(clientcmd.delivered_message(chat_message)))
             view.username.set(message[2])
             view.log_message(message[2]+": "+message[1])
+
+          elif message[0] == "REQUEST":
+            send_message = clientcmd.profile_message(message[2], profile_version, json.dumps(profile))
+            print("SENDING: ==============================")
+            print(send_message)
+            print("SENT")
+            message_queues[s].put(pickle.dumps(send_message))
 
           else:
             print("Command " + str(message[0]) + " not recognized")

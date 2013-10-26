@@ -16,6 +16,19 @@ class ClientCommands:
     self.constants.delivered[1] = counter
     return self.constants.delivered
 
+  def request_profile(self, user, version):
+    self.constants.request[1] = user
+    self.constants.request[2] = version
+    return self.constants.request
+
+  def profile_message(self, user, version, profile):
+    self.constants.profile[1] = user
+    self.constants.profile[2] = version
+    self.constants.profile[3] = profile
+    print("WFT0*****************")
+    print(profile)
+    return self.constants.profile
+ 
   # def ping_user(self, user):
   #   ping[1] = user[1]
   #   ping[2] = user[2]
