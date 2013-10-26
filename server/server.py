@@ -1,10 +1,11 @@
 from socket import *
-from server_functions import *
 import time
 import pickle
 import threading
-import server_gui
 import sqlite3
+
+import server_gui
+from server_functions import *
 
 #Connect to server and print message 
 server_socket = socket(AF_INET, SOCK_DGRAM)  
@@ -13,7 +14,7 @@ print("(9000) UDP Server Waiting for client...")
 
 def probe_server():
   # Connect to sqlite database and print success message
-  conn = sqlite3.connect('cosn.db')
+  conn = sqlite3.connect('server/cosn.db')
   print("Opened database successfully")
 
   # Delete records of online users
