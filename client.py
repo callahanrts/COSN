@@ -27,11 +27,15 @@ cmd = Command(host, port, username)
 servecmd = ServerCommands(cmd)
 clientcmd = ClientCommands(cmd)
 
+# Chat variables
+chatting_friend = None
+
 # Chat socket
 chat_conn = None
 
 def server_command_handler(command, user):
   global view
+  print(user)
   if command == "REGISTER":
     send_message = servecmd.register_user()
 
@@ -46,6 +50,7 @@ def server_command_handler(command, user):
 def send_udp(send_message):
   # UDP Socket to connect with server
   udp_socket = socket(AF_INET, SOCK_DGRAM)
+  print(send_message)
   udp_socket.sendto(pickle.dumps(send_message), SERVER_ADDR)
   recv_data, addr = udp_socket.recvfrom(1024)
   return pickle.loads(recv_data) 
@@ -63,15 +68,16 @@ def peer_command_handler(command, user):
   if command == "FRIEND":
     send_message = clientcmd.befriend_user(user)
 
-  elif command == "CHAT":
-    # Create Chat GUI
-    chat_window = ChatWindow()
-    chat_window.initChatMenu(user_data, username, send_chat)
-    chat_conn.connect((user_data[2], int(user_data[3])))
-    # chat_conn.close()
-    return
+  # elif command == "CHAT":
+  #   # Create Chat GUI  
+  #   global chat_conn
+  #   chat_windows.append(open_chat_window(user_data, username, chat_conn))
+  #   chat_conn.connect((user_data[2], int(user_data[3])))
+  #   # chat_conn.close()
+  #   return
 
   try:
+    print(user_data)
     chat_conn.connect((user_data[2], int(user_data[3])))
     chat_conn.send(pickle.dumps(send_message)) 
     recv_data, addr = chat_conn.recvfrom(1024)
@@ -84,12 +90,32 @@ def peer_command_handler(command, user):
 
   chat_conn.close()
 
-def send_chat(message):
-  global chat_conn
-  chat_conn.send(pickle.dumps(clientcmd.chat_message(message, username))) 
-  recv_data, addr = chat_conn.recvfrom(1024)
+def open_chat_window(user_data, username, connection):
+  chat_window = ChatWindow()
+  chat_window.initChatMenu(user_data, username, send_chat, connection)
+  return chat_window
+
+def send_chat(message, connection):
+  connection.send(pickle.dumps(clientcmd.chat_message(message, username))) 
+  recv_data, addr = connection.recvfrom(1024)
   response = pickle.loads(recv_data) 
   view.log(response) # Response should be "delivered"
+
+# Current, single window chat
+def chat_command(message, user): 
+  global chat_conn
+  chat_conn = socket(AF_INET, SOCK_STREAM)
+  user_data = send_udp(servecmd.query_user(user))
+  view.log_message(username+": "+message)
+  try:
+    chat_conn.connect((user_data[2], int(user_data[3])))
+    chat_conn.send(pickle.dumps(clientcmd.chat_message(message, username))) 
+    recv_data, addr = chat_conn.recvfrom(1024)
+    response = pickle.loads(recv_data) 
+    view.log(response) 
+  except:
+    logging.exception("hm")
+    view.log("User is offline")
 
 def peer_listener():
   # Set up main, non-blocking, server socket to listen for tcp connections
@@ -140,6 +166,17 @@ def peer_listener():
             message_queues[s].put(pickle.dumps(cmd.confirm))
           elif message[0] == "CHAT": 
             message_queues[s].put(pickle.dumps(cmd.delivered))
+            view.username.set(message[2])
+            view.log_message(message[2]+": "+message[1])
+            # for win in chat_windows:
+            #   if win.chating_with(message[2]):
+            #     chat_window = win
+            # if chat_window == None: 
+            #   chat_win = open_chat_window([None, None, addr[0], addr[1], message[2]], username, s)
+            #   print("slow?")
+            #   chat_windows.append(chat_win)
+            # chat_win.log_message(message[1])
+
           else:
             print("Command " + str(message[0]) + " not recognized")
             message_queues[s].put(data)
@@ -197,5 +234,5 @@ if __name__ == '__main__':
   listener.start()
 
   # Create GUI
-  view = MainWindow(server_command_handler, peer_command_handler, username)
+  view = MainWindow(server_command_handler, peer_command_handler, chat_command, username)
   view.start()

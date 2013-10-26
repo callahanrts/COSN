@@ -6,6 +6,7 @@ class Command:
     self.query    = ["QUERY", "1"]                     # Response => LOCATION
     self.logout   = ["LOGOUT", username]               # Response => none  
     self.down     = ["DOWN", username]
+    # ["LOCATION", user_id, host, port, username]
 
     # P2P Command Strings
     self.ping      = ["PING", "user", "ip", "port"]     # Response => PONG

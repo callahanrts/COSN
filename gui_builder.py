@@ -13,7 +13,7 @@ class GuiBuilder:
 
   # Create widgets
   def createLabel(self, lbl_str, window):
-    return Label(window, text = lbl_str, anchor=W, width=30).pack()
+    return Label(window, text = lbl_str, anchor=W, width=40).pack()
 
   def createMenuButton(self, cmd_var, options, window):
     option = OptionMenu(window, cmd_var, *options)
@@ -21,7 +21,7 @@ class GuiBuilder:
     return option
 
   def createInput(self, textVar, window):
-    return Entry(window, textvariable = textVar, width=30).pack()
+    return Entry(window, textvariable = textVar, width=30)
 
   def createButton(self, lbl, cmd, window):
     return Button(window, text= lbl, command = cmd)
@@ -30,10 +30,13 @@ class GuiBuilder:
     return Frame(window)
 
   def createLogBox(self, window):
-    sb = Scrollbar(window)
+    frame = self.createFrame(window)
+    frame.config(width=65, height=4)
+    frame.pack()
+    sb = Scrollbar(frame)
     sb.pack(side=RIGHT, fill=Y, pady=(0, 10), padx=(0, 10))
 
-    log_box = Listbox(window)
-    log_box.config(width=65, height=15)
+    log_box = Listbox(frame)
+    log_box.config(width=65, height=4)
     log_box.pack(padx=(10, 0), pady=(0, 10))
     return log_box
