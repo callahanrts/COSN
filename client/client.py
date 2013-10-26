@@ -6,6 +6,7 @@ import pickle
 import logging
 import queue
 import json
+import os
 
 # Append paths
 sys.path.append('../extras')
@@ -102,8 +103,14 @@ def peer_command_handler(command, user):
   chat_conn.close()
 
 def save_profile(data):
-  print("save profile")
-  print(data)
+  directory = "../users/"+username+"/friends/"+data[1]+"/"
+  json_profile = json.loads(data[3])
+  if not os.path.exists(directory):
+    os.makedirs(directory)
+
+  with open(directory + data[1] + ".json", "w") as outfile:
+    json.dump(json_profile, outfile, indent=2)
+
 
 # Current, single window chat
 def chat_command(message, user): 
@@ -178,10 +185,7 @@ def peer_listener():
             view.log_message(message[2]+": "+message[1])
 
           elif message[0] == "REQUEST":
-            send_message = clientcmd.profile_message(message[2], profile_version, json.dumps(profile))
-            print("SENDING: ==============================")
-            print(send_message)
-            print("SENT")
+            send_message = clientcmd.profile_message(message[1], message[2], json.dumps(profile))
             message_queues[s].put(pickle.dumps(send_message))
 
           else:
