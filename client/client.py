@@ -1,5 +1,6 @@
 from socket import *
 from threading import * 
+from shutil import * 
 import select
 import sys
 import pickle
@@ -41,8 +42,21 @@ chat_counter = 1
 # Chat socket
 chat_conn = None
 
+# Create Directories if they don't exist
+user_directory = "../users/" + username + "/" 
+if not os.path.exists(user_directory):
+  os.makedirs(user_directory)
+
+friends_directory = user_directory + "friends/"
+if not os.path.exists(friends_directory):
+  os.makedirs(friends_directory)
+
 # Profile data
-profile = open("../users/" + username + "/" + username + ".json")
+try:
+  profile = open(user_directory + username + ".json")
+except IOError:
+  copyfile("../extras/profile.json", "../users/" + username + "/" + username + ".json")
+  profile = open(user_directory + username + ".json")
 profile = json.load(profile)
 profile_version = 1
 
@@ -69,7 +83,7 @@ def send_udp(send_message):
   return pickle.loads(recv_data) 
 
 
-def peer_command_handler(command, user):
+def peer_command_handler(command, user, user2):
   global chat_conn
   request_for_profile = False
 
@@ -83,6 +97,10 @@ def peer_command_handler(command, user):
 
   elif command == "REQUEST": 
     send_message = clientcmd.request_profile(user, profile_version) # version but not needed yet
+    request_for_profile = True
+
+  elif command == "RELAY": 
+    send_message = clientcmd.request_profile_relay(user2, profile_version) # version but not needed yet
     request_for_profile = True
 
   try:
@@ -173,6 +191,8 @@ def peer_listener():
           print("Readable client socket has data")
           print(message)
 
+          global profile
+
           # Switch on the different types of messages or return original if not recognized
           if message[0] == "FRIEND":
             message_queues[s].put(pickle.dumps(cmd.confirm))
@@ -187,6 +207,15 @@ def peer_listener():
           elif message[0] == "REQUEST":
             send_message = clientcmd.profile_message(message[1], message[2], json.dumps(profile))
             message_queues[s].put(pickle.dumps(send_message))
+
+          elif message[0] == "RELAY": 
+            profile = open(friends_directory + message[1] + "/" + message[1] + ".json")
+
+            profile = json.load(profile)
+            send_message = clientcmd.profile_message(message[1], message[2], json.dumps(profile))
+            message_queues[s].put(pickle.dumps(send_message))
+
+
 
           else:
             print("Command " + str(message[0]) + " not recognized")

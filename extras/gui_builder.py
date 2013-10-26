@@ -13,7 +13,7 @@ class GuiBuilder:
 
   # Create widgets
   def createLabel(self, lbl_str, window):
-    return Label(window, text = lbl_str, anchor=W, width=40).pack()
+    return Label(window, text = lbl_str, anchor=W, width=40)
 
   def createMenuButton(self, cmd_var, options, window):
     option = OptionMenu(window, cmd_var, *options)

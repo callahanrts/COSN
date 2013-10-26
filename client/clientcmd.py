@@ -21,6 +21,11 @@ class ClientCommands:
     self.constants.request[2] = version
     return self.constants.request
 
+  def request_profile_relay(self, user, version):
+    self.constants.relay[1] = user
+    self.constants.relay[2] = version
+    return self.constants.relay
+
   def profile_message(self, user, version, profile):
     self.constants.profile[1] = user
     self.constants.profile[2] = version

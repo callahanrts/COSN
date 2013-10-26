@@ -1,0 +1,23 @@
+{
+  "profile": {
+    "info": {
+      "userId": "1", 
+      "city": "Reno", 
+      "name": "Alice", 
+      "languages": "English;Spanish", 
+      "version": "3"
+    }, 
+    "work-education": {
+      "employers": "University of Nevada, Reno;Bally Technologies", 
+      "highSchool": "Coral Academy of Science", 
+      "colleges": "University of Nevada, Reno", 
+      "gradSchools": "University of Nevada, Reno"
+    }, 
+    "interests": {
+      "tvs": "Friends;The Simpsons;House", 
+      "books": "The Analysis of Mind;Thus Spoke Zarathgusta;Hundred Years of Solitude", 
+      "musics": "Katy Perry;Adele Adkins", 
+      "movies": "The Artist;Hugo;The Descendants"
+    }
+  }
+}
