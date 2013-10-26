@@ -15,9 +15,19 @@
     },
     "interests": {
       "books": "The Analysis of Mind;Thus Spoke Zarathgusta;Hundred Years of Solitude",
-      "musics": "Katy Perry;Adele Adkins",
+      "music": "Katy Perry;Adele Adkins",
       "movies": "The Artist;Hugo;The Descendants",
-      "tvs": "Friends;The Simpsons;House"
+      "tv": "Friends;The Simpsons;House"
     }
-  }
+  }, 
+
+  "content": [
+    {
+      "version": "1", 
+      "id": "1",
+      "type": "text",
+      "time": "10/23/2013 1:00pm",
+      "info": "Hello world."
+    }
+  ]
 }

@@ -20,3 +20,5 @@ class Command:
     self.request   = ["REQUEST", "user", "ver"]         # Response => PROFILE
     self.profile   = ["PROFILE", username, "v", "jsfl"] # Response => none
     self.relay     = ["RELAY", username, "v"]           # Response => PROFILE
+    self.get       = ["GET", "filename"]                # Response => FILE
+    self.file      = ["FILE", "name", "len", "content"] # Response => none

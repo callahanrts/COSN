@@ -21,6 +21,16 @@ class ClientCommands:
     self.constants.request[2] = version
     return self.constants.request
 
+  def request_file(self, filename):
+    self.constants.get[1] = filename
+    return self.constants.get
+
+  def send_file(self, filename, filesize, content):
+    self.constants.file[1] = filename
+    self.constants.file[2] = filesize
+    self.constants.file[3] = content
+    return self.constants.file
+
   def request_profile_relay(self, user, version):
     self.constants.relay[1] = user
     self.constants.relay[2] = version

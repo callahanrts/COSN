@@ -83,9 +83,10 @@ def send_udp(send_message):
   return pickle.loads(recv_data) 
 
 
-def peer_command_handler(command, user, user2):
+def peer_command_handler(command, user, alt_data):
   global chat_conn
   request_for_profile = False
+  request_for_file = False
 
   # Create socket to connect with a user
   chat_conn = socket(AF_INET, SOCK_STREAM)
@@ -100,8 +101,12 @@ def peer_command_handler(command, user, user2):
     request_for_profile = True
 
   elif command == "RELAY": 
-    send_message = clientcmd.request_profile_relay(user2, profile_version) # version but not needed yet
+    send_message = clientcmd.request_profile_relay(alt_data, profile_version) # version but not needed yet
     request_for_profile = True
+
+  elif command == "GET": 
+    send_message = clientcmd.request_file(alt_data)
+    request_for_file = True
 
   try:
     print(user_data)
@@ -109,8 +114,11 @@ def peer_command_handler(command, user, user2):
     chat_conn.send(pickle.dumps(send_message)) 
     recv_data, addr = chat_conn.recvfrom(1024)
     response = pickle.loads(recv_data) 
+
     if request_for_profile:
       save_profile(response)
+    elif request_for_file:
+      save_file(response)
     else:
       view.log(response) 
   except:
@@ -119,6 +127,20 @@ def peer_command_handler(command, user, user2):
     #down_user(username.get())
 
   chat_conn.close()
+
+def save_file(data):
+  recv_data, addr = chat_conn.recvfrom(data + 1024)
+  resp_file = pickle.loads(recv_data) 
+
+  directory = "../users/"+username+"/friends/files/"
+  if not os.path.exists(directory):
+    os.makedirs(directory)
+
+  # create file
+  f = open(directory+resp_file[1], "wb")
+  f.write(resp_file[3])
+  f.close()
+
 
 def save_profile(data):
   directory = "../users/"+username+"/friends/"+data[1]+"/"
@@ -213,6 +235,14 @@ def peer_listener():
 
             profile = json.load(profile)
             send_message = clientcmd.profile_message(message[1], message[2], json.dumps(profile))
+            message_queues[s].put(pickle.dumps(send_message))
+
+          elif message[0] == "GET": 
+            size = os.path.getsize(user_directory + message[1])
+            f = open(user_directory+message[1], "rb")
+            bytes = f.read()
+            send_message = clientcmd.send_file(message[1], size, bytes)
+            message_queues[s].put(pickle.dumps(size))
             message_queues[s].put(pickle.dumps(send_message))
 
 
