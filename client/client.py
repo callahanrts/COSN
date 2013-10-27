@@ -22,12 +22,13 @@ from clientcmd import *
 
 class Client:
   def __init__(self, host, port, username):
+    # Initialize user variables
     self.username = username
     self.host = host
     self.port = int(port)
     self.server_addr = ("", 9000)
 
-    # Initialize Commands Class
+    # Initialize Command Classes
     self.cmd = Command(host, port, self.username)
     self.servecmd = ServerCommands(self.cmd)
     self.clientcmd = ClientCommands(self.cmd)
@@ -35,28 +36,14 @@ class Client:
     # Chat variables
     self.chat_counter = 1
 
-    # Chat socket
-    self.chat_conn = None
-
     # Friends list
     self.friends = [ ]
 
-    # Create Directories if they don't exist
-    self.user_directory = "../users/" + self.username + "/" 
-    self.create_dir_if_not_exists(self.user_directory)
+    self.setup_client_directories()
+    self.retrieve_user_profile()
 
-    self.friends_directory = self.user_directory + "friends/"
-    self.create_dir_if_not_exists(self.friends_directory)
-
-    # Profile data
-    try:
-      self.profile = open(self.user_directory + self.username + ".json")
-    except IOError:
-      copyfile("../extras/profile.json", "../users/" + self.username + "/" + self.username + ".json")
-    
-    self.profile = open(self.user_directory + self.username + ".json")
-    self.profile = json.load(self.profile)
-    self.profile_version = 1
+    # Load user profile as JSON
+    self.user = json.load(self.user)
 
     # Listen for incoming peer connections
     listener = Thread(target = self.peer_listener)
@@ -66,6 +53,23 @@ class Client:
     self.view = MainWindow(self.server_command_handler, self.peer_command_handler, self.chat_command, self.username)
     self.view.start()
 
+  def setup_client_directories(self):
+    # Create Directories if they don't exist
+    self.user_directory = "../users/" + self.username + "/" 
+    self.create_dir_if_not_exists(self.user_directory)
+
+    self.friends_directory = self.user_directory + "friends/"
+    self.create_dir_if_not_exists(self.friends_directory)
+
+  def retrieve_user_profile(self):
+    try:
+      # Attempt to retrieve user profile
+      self.user = open(self.user_directory + self.username + ".json")
+    except IOError:
+      # Generate template user profile or blank
+      copyfile("../extras/profile.json", "../users/" + self.username + "/" + self.username + ".json")
+      self.user = open(self.user_directory + self.username + ".json")
+      
   def create_dir_if_not_exists(self, path):
     if not os.path.exists(path): os.makedirs(path)
 
@@ -108,11 +112,11 @@ class Client:
       send_message = self.clientcmd.befriend_user(self.username)
 
     elif command == "REQUEST": 
-      send_message = self.clientcmd.request_profile(user, self.profile_version) # version but not needed yet
+      send_message = self.clientcmd.request_profile(user, self.user["profile"]["info"]["version"]) # version but not needed yet
       request_for_profile = True
 
     elif command == "RELAY": 
-      send_message = self.clientcmd.request_profile_relay(alt_data, self.profile_version) # version but not needed yet
+      send_message = self.clientcmd.request_profile_relay(alt_data, self.user["profile"]["info"]["version"]) # version but not needed yet
       request_for_profile = True
 
     elif command == "GET": 
@@ -256,7 +260,7 @@ class Client:
 
             elif message[0] == "REQUEST":
               size = os.path.getsize(self.user_directory + self.username + ".json")
-              send_message = self.clientcmd.profile_message(message[1], message[2], json.dumps(self.profile))
+              send_message = self.clientcmd.profile_message(message[1], message[2], json.dumps(self.user))
               message_queues[s].put(pickle.dumps(size))
               message_queues[s].put(pickle.dumps(send_message))
 
@@ -264,9 +268,9 @@ class Client:
               profile_file = self.friends_directory + message[1] + "/" + message[1] + ".json"
               try:
                 size = os.path.getsize(profile_file)
-                self.profile = open(profile_file)
-                self.profile = json.load(self.profile)              
-                send_message = self.clientcmd.profile_message(message[1], message[2], json.dumps(self.profile))
+                self.user = open(profile_file)
+                self.user = json.load(self.user)              
+                send_message = self.clientcmd.profile_message(message[1], message[2], json.dumps(self.user))
               except: 
                 size = 0
                 send_message = "I don't have the requested profile."
