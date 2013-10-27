@@ -75,12 +75,17 @@ def server_command_handler(command, user):
   view.log(send_udp(send_message))
 
 def send_udp(send_message):
+  global view
   # UDP Socket to connect with server
   udp_socket = socket(AF_INET, SOCK_DGRAM)
+  udp_socket.settimeout(2)
   print(send_message)
-  udp_socket.sendto(pickle.dumps(send_message), SERVER_ADDR)
-  recv_data, addr = udp_socket.recvfrom(1024)
-  return pickle.loads(recv_data) 
+  try: 
+    udp_socket.sendto(pickle.dumps(send_message), SERVER_ADDR)
+    recv_data, addr = udp_socket.recvfrom(1024)
+    return pickle.loads(recv_data) 
+  except timeout:
+    view.log("Server timed out")
 
 
 def peer_command_handler(command, user, alt_data):
@@ -129,6 +134,7 @@ def peer_command_handler(command, user, alt_data):
   chat_conn.close()
 
 def save_file(data):
+  global view
   recv_data, addr = chat_conn.recvfrom(data + 1024)
   resp_file = pickle.loads(recv_data) 
 
@@ -136,21 +142,28 @@ def save_file(data):
   if not os.path.exists(directory):
     os.makedirs(directory)
 
-  # create file
-  f = open(directory+resp_file[1], "wb")
-  f.write(resp_file[3])
-  f.close()
-
+  if data > 0:
+    # create file
+    f = open(directory+resp_file[1], "wb")
+    f.write(resp_file[3])
+    f.close()
+  else: 
+    view.log(resp_file)
 
 def save_profile(data):
-  directory = "../users/"+username+"/friends/"+data[1]+"/"
-  json_profile = json.loads(data[3])
-  if not os.path.exists(directory):
-    os.makedirs(directory)
+  global view
+  recv_data, addr = chat_conn.recvfrom(data + 1024)
+  resp_file = pickle.loads(recv_data)
+  if data > 0:
+    directory = "../users/"+username+"/friends/"+resp_file[1]+"/"
+    json_profile = json.loads(resp_file[3])
+    if not os.path.exists(directory):
+      os.makedirs(directory)
 
-  with open(directory + data[1] + ".json", "w") as outfile:
-    json.dump(json_profile, outfile, indent=2)
-
+    with open(directory + resp_file[1] + ".json", "w") as outfile:
+      json.dump(json_profile, outfile, indent=2)
+  else:
+    view.log(resp_file)
 
 # Current, single window chat
 def chat_command(message, user): 
@@ -224,24 +237,37 @@ def peer_listener():
             chat_message = message[3]
             message_queues[s].put(pickle.dumps(clientcmd.delivered_message(chat_message)))
             view.username.set(message[2])
+            message_queues[s].put(pickle.dumps(size))
             view.log_message(message[2]+": "+message[1])
 
           elif message[0] == "REQUEST":
+            size = os.path.getsize(user_directory + username + ".json")
             send_message = clientcmd.profile_message(message[1], message[2], json.dumps(profile))
+            message_queues[s].put(pickle.dumps(size))
             message_queues[s].put(pickle.dumps(send_message))
 
           elif message[0] == "RELAY": 
-            profile = open(friends_directory + message[1] + "/" + message[1] + ".json")
-
-            profile = json.load(profile)
-            send_message = clientcmd.profile_message(message[1], message[2], json.dumps(profile))
+            profile_file = friends_directory + message[1] + "/" + message[1] + ".json"
+            try:
+              size = os.path.getsize(profile_file)
+              profile = open(profile_file)
+              profile = json.load(profile)              
+              send_message = clientcmd.profile_message(message[1], message[2], json.dumps(profile))
+            except: 
+              size = 0
+              send_message = "I don't have the requested profile."
+            message_queues[s].put(pickle.dumps(size))
             message_queues[s].put(pickle.dumps(send_message))
 
           elif message[0] == "GET": 
-            size = os.path.getsize(user_directory + message[1])
-            f = open(user_directory+message[1], "rb")
-            bytes = f.read()
-            send_message = clientcmd.send_file(message[1], size, bytes)
+            try: 
+              size = os.path.getsize(user_directory + message[1])
+              f = open(user_directory+message[1], "rb")
+              bytes = f.read()
+              send_message = clientcmd.send_file(message[1], size, bytes)
+            except:
+              size = 0
+              send_message = "File does not exist"
             message_queues[s].put(pickle.dumps(size))
             message_queues[s].put(pickle.dumps(send_message))
 
