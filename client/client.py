@@ -129,6 +129,7 @@ def peer_command_handler(command, user, alt_data):
   chat_conn.close()
 
 def save_file(data):
+  global view
   recv_data, addr = chat_conn.recvfrom(data + 1024)
   resp_file = pickle.loads(recv_data) 
 
@@ -136,16 +137,18 @@ def save_file(data):
   if not os.path.exists(directory):
     os.makedirs(directory)
 
-  # create file
-  f = open(directory+resp_file[1], "wb")
-  f.write(resp_file[3])
-  f.close()
-
+  if data > 0:
+    # create file
+    f = open(directory+resp_file[1], "wb")
+    f.write(resp_file[3])
+    f.close()
+  else: 
+    view.log(resp_file)
 
 def save_profile(data):
   recv_data, addr = chat_conn.recvfrom(data + 1024)
   resp_file = pickle.loads(recv_data)
-  
+
   directory = "../users/"+username+"/friends/"+resp_file[1]+"/"
   json_profile = json.loads(resp_file[3])
   if not os.path.exists(directory):
@@ -247,10 +250,14 @@ def peer_listener():
             message_queues[s].put(pickle.dumps(send_message))
 
           elif message[0] == "GET": 
-            size = os.path.getsize(user_directory + message[1])
-            f = open(user_directory+message[1], "rb")
-            bytes = f.read()
-            send_message = clientcmd.send_file(message[1], size, bytes)
+            try: 
+              size = os.path.getsize(user_directory + message[1])
+              f = open(user_directory+message[1], "rb")
+              bytes = f.read()
+              send_message = clientcmd.send_file(message[1], size, bytes)
+            except:
+              size = 0
+              send_message = "File does not exist"
             message_queues[s].put(pickle.dumps(size))
             message_queues[s].put(pickle.dumps(send_message))
 
