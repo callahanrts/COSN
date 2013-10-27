@@ -53,9 +53,10 @@ class Client:
       self.profile = open(self.user_directory + self.username + ".json")
     except IOError:
       copyfile("../extras/profile.json", "../users/" + self.username + "/" + self.username + ".json")
-      self.profile = open(self.user_directory + self.username + ".json")
-      self.profile = json.load(self.profile)
-      self.profile_version = 1
+    
+    self.profile = open(self.user_directory + self.username + ".json")
+    self.profile = json.load(self.profile)
+    self.profile_version = 1
 
     # Listen for incoming peer connections
     listener = Thread(target = self.peer_listener)
