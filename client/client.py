@@ -128,8 +128,8 @@ def peer_command_handler(command, user, alt_data):
       view.log(response) 
   except:
     logging.exception("hm")
-    view.log("User is offline")
-    #down_user(username.get())
+    view.log("User is either busy or offline")
+    view.log(send_udp(clientcmd.user_offline(user_data[4])))
 
   chat_conn.close()
 

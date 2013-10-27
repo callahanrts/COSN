@@ -47,3 +47,7 @@ class ClientCommands:
     self.constants.pong[2] = host
     self.constants.pong[3] = port
     return self.constants.pong
+
+  def user_offline(self, username):
+    self.constants.down[1] = username
+    return self.constants.down
