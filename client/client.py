@@ -245,7 +245,9 @@ def peer_listener():
             message_queues[s].put(pickle.dumps(size))
             message_queues[s].put(pickle.dumps(send_message))
 
-
+          elif message[0] == "PING":
+            send_message = clientcmd.pong_server(username, host, port)
+            message_queues[s].put(pickle.dumps(send_message))            
 
           else:
             print("Command " + str(message[0]) + " not recognized")

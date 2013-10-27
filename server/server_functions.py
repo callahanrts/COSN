@@ -32,6 +32,10 @@ def register_user(request, conn):
     conn.commit()
     return ["ACK", request[1], request[2], request[3], "Registered successfully"]
 
+def ping_command(user_data):
+ return ["PING", user_data[4], user_data[2], user_data[3]] 
+
+
 def down_user(username, conn):
   remove_user_from_table(username, conn)
   return ["User was taken offline for inactivity"]

@@ -40,24 +40,10 @@ class ClientCommands:
     self.constants.profile[1] = user
     self.constants.profile[2] = version
     self.constants.profile[3] = profile
-    print("WFT0*****************")
-    print(profile)
     return self.constants.profile
- 
-  # def ping_user(self, user):
-  #   ping[1] = user[1]
-  #   ping[2] = user[2]
-  #   ping[3] = user[3]
-  #   return ping
 
-  # def pong_user(self):
-  #   pong[1] = USERNAME
-  #   pong[2] = HOST
-  #   pong[3] = PORT
-  #   return pong
-
-  # def request_profile(self, user, version):
-  #   request[1] = user[1]
-  #   request[2] = version
-  #   return request
-
+  def pong_server(self, username, host, port):
+    self.constants.pong[1] = username
+    self.constants.pong[2] = host
+    self.constants.pong[3] = port
+    return self.constants.pong
