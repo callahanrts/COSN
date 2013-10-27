@@ -13,7 +13,6 @@ cd server
 python server.py
 ```
 
-Expected Usage: 
 UDP Commands:
 ```
 - REGISTER select register and click "Send (server)"
