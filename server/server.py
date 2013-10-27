@@ -45,8 +45,11 @@ def probe_server():
       return_message = pickle.dumps(reply)
 
     elif command == "DOWN": 
-      reply = down_user(request[1], conn)
-      return_message = pickle.dumps(reply)
+      if not ping_user(request[1]):
+        reply = down_user(request[1], conn)
+        return_message = pickle.dumps(reply)
+      else:
+        return_message = pickle.dumps("User is busy")
 
     else:
       view.log("Invalid data from client ( " ,address[0], " " , address[1] , " ): ")
@@ -68,10 +71,12 @@ def ping_user(username):
     recv_data, addr = chat_conn.recvfrom(1024)
     response = pickle.loads(recv_data) 
     view.log(response)
-  except: # Remove user from online table if no repsonse is received
+    return True
+  except error: # Remove user from online table if no repsonse is received
     logging.exception("hm")
     view.log("User is offline")
     down_user(username, conn)
+    return False
 
 if __name__ == '__main__':
   view = server_gui.ServerGui(ping_user)
