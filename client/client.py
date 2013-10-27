@@ -75,12 +75,17 @@ def server_command_handler(command, user):
   view.log(send_udp(send_message))
 
 def send_udp(send_message):
+  global view
   # UDP Socket to connect with server
   udp_socket = socket(AF_INET, SOCK_DGRAM)
+  udp_socket.settimeout(2)
   print(send_message)
-  udp_socket.sendto(pickle.dumps(send_message), SERVER_ADDR)
-  recv_data, addr = udp_socket.recvfrom(1024)
-  return pickle.loads(recv_data) 
+  try: 
+    udp_socket.sendto(pickle.dumps(send_message), SERVER_ADDR)
+    recv_data, addr = udp_socket.recvfrom(1024)
+    return pickle.loads(recv_data) 
+  except timeout:
+    view.log("Server timed out")
 
 
 def peer_command_handler(command, user, alt_data):
