@@ -9,8 +9,7 @@ python client.py HOST PORT USERNAME
 
 To start the server:
 ```
-cd server
-python server.py
+python server/server.py
 ```
 
 Changes I've made to the spec:

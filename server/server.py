@@ -8,79 +8,96 @@ import logging
 import server_gui
 from server_functions import *
 
-#Connect to server and print message 
-server_socket = socket(AF_INET, SOCK_DGRAM)  
-server_socket.bind(('', 9000))
-print("(9000) UDP Server Waiting for client...")
 
-# View
-view = None
+class Server:
+  def __init__(self):
+    #Connect to server and print message 
+    self.server_socket = socket(AF_INET, SOCK_DGRAM)  
+    self.server_socket.bind(('', 9000))
+    print("(9000) UDP Server Waiting for client...")
 
-def probe_server():
-  global view
-  # Connect to sqlite database and print success message
-  conn = sqlite3.connect('server/cosn.db')
-  print("Opened database successfully")
+    # Connect to sqlite database and print success message
+    self.conn = sqlite3.connect('server/cosn.db')
+    print("Opened database successfully")
 
-  # Delete records of online users
-  conn.execute("DELETE FROM online_users")
-  conn.commit()
+    # Delete records of online users
+    self.conn.execute("DELETE FROM online_users")
+    self.conn.commit()
 
-  # Retrieve data from request
-  while 1:
-    data, address = server_socket.recvfrom(1024)
-    request = pickle.loads(data)
-    command = request[0]
-    view.log(request)
+    # Start UDP listener thread
+    listener = threading.Thread(target = self.probe_server)
+    listener.start()
+
+    # Create view for server 
+    self.view = server_gui.ServerGui(self.ping_user)
+
+    # Start gui mainloop (must be called last)
+    self.view.start()
+
+  def probe_server(self):
+    while 1:
+      # Retrieve data from request
+      data, address = self.server_socket.recvfrom(1024)
+      request = pickle.loads(data)
+      command = request[0]
+
+      # Log request in server message log
+      self.view.log(request)
+
+      # Get message to return to user
+      return_message = self.reply_to_command(command, request)
+
+      # If a return message was created, reply to it
+      if return_message != None:
+        self.view.log(return_message)
+        self.server_socket.sendto(pickle.dumps(return_message), address)
+
+  def reply_to_command(self, command, request):
+    # Connect to sqlite database (must be done in each thread)
+    self.conn = sqlite3.connect('server/cosn.db')
+
     if command == "REGISTER":
-      reply = register_user(request, conn)
-      return_message = pickle.dumps(reply)
+      return register_user(request, self.conn)
 
     elif command == "QUERY":
-      reply = query_user(request, conn)
-      return_message = pickle.dumps(reply)
+      return query_user(request, self.conn)
 
     elif command == "LOGOUT":
-      reply = logout_user(request[1], conn)
-      return_message = pickle.dumps(reply)
+      return logout_user(request[1], self.conn)
 
     elif command == "DOWN": 
-      if not ping_user(request[1]):
-        reply = down_user(request[1], conn)
-        return_message = pickle.dumps(reply)
+      if not self.ping_user(request[1]):
+        return down_user(request[1], self.conn)
       else:
-        return_message = pickle.dumps("User is busy")
+        return "User is busy"
 
     else:
-      view.log("Invalid data from client ( " ,address[0], " " , address[1] , " ): ")
-      view.log(command)
+      self.view.log("Invalid data from client: " + command)
 
-    view.log(reply)
-    server_socket.sendto(return_message, address)
+  # Ping user upon another users request
+  def ping_user(self, username):
+    # Get user data and the command to send to user
+    user_data = query_user(["", username], self.conn)
+    send_message = ping_command(user_data)
 
-# Ping user upon another users request
-def ping_user(username):
-  global view
-  conn = sqlite3.connect('server/cosn.db')
-  user_data = query_user(["", username], conn)
-  send_message = ping_command(user_data)
-  chat_conn = socket(AF_INET, SOCK_STREAM)
-  try:
-    chat_conn.connect((user_data[2], int(user_data[3])))
-    chat_conn.send(pickle.dumps(send_message)) 
-    recv_data, addr = chat_conn.recvfrom(1024)
-    response = pickle.loads(recv_data) 
-    view.log(response)
-    return True
-  except error: # Remove user from online table if no repsonse is received
-    logging.exception("hm")
-    view.log("User is offline")
-    down_user(username, conn)
-    return False
+    # Create tcp socket to send ping to client
+    chat_conn = socket(AF_INET, SOCK_STREAM)
+
+    try:
+      # Connect to client and send message
+      chat_conn.connect((user_data[2], int(user_data[3])))
+      chat_conn.send(pickle.dumps(send_message)) 
+
+      # Receive reply from client. If no response, send to except block
+      recv_data, addr = chat_conn.recvfrom(1024)
+      response = pickle.loads(recv_data) 
+      self.view.log(response)
+      return True
+    except: 
+      # Remove user from online table if no repsonse is received and log message
+      down_user(username, self.conn)
+      self.view.log("User is offline")
+      return False
 
 if __name__ == '__main__':
-  view = server_gui.ServerGui(ping_user)
-  listener = threading.Thread(target = probe_server)
-  listener.start()
-
-  view.start()
+  server = Server()
