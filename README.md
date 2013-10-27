@@ -13,6 +13,13 @@ cd server
 python server.py
 ```
 
+Changes I've made to the spec:
+```
+- Messages sent to client and server are not done so with a string. They placed into an array and then pickled and sent over the connection. 
+- I decided to use JSON as opposed to XML for its robustness and the awesome answers on this SO post: http://stackoverflow.com/questions/3536893/what-are-the-pros-and-cons-of-xml-and-json 
+- Erros do not get logged to a file. They get logged in the gui
+```
+
 UDP Commands:
 ```
 - REGISTER select register and click "Send (server)"

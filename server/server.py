@@ -72,7 +72,7 @@ def ping_user(username):
     response = pickle.loads(recv_data) 
     view.log(response)
     return True
-  except: # Remove user from online table if no repsonse is received
+  except error: # Remove user from online table if no repsonse is received
     logging.exception("hm")
     view.log("User is offline")
     down_user(username, conn)

@@ -42,6 +42,9 @@ chat_counter = 1
 # Chat socket
 chat_conn = None
 
+# Friends list
+friends = [ ]
+
 # Create Directories if they don't exist
 user_directory = "../users/" + username + "/" 
 if not os.path.exists(user_directory):
@@ -90,6 +93,7 @@ def send_udp(send_message):
 
 def peer_command_handler(command, user, alt_data):
   global chat_conn
+  global friends
   request_for_profile = False
   request_for_file = False
 
@@ -99,7 +103,8 @@ def peer_command_handler(command, user, alt_data):
   user_data = send_udp(servecmd.query_user(user))
 
   if command == "FRIEND":
-    send_message = clientcmd.befriend_user(user)
+    friends.append(user)
+    send_message = clientcmd.befriend_user(username)
 
   elif command == "REQUEST": 
     send_message = clientcmd.request_profile(user, profile_version) # version but not needed yet
@@ -128,7 +133,6 @@ def peer_command_handler(command, user, alt_data):
       view.log(response) 
   except:
     logging.exception("hm")
-    view.log("User is either busy or offline")
     view.log(send_udp(clientcmd.user_offline(user_data[4])))
 
   chat_conn.close()
@@ -167,20 +171,30 @@ def save_profile(data):
 
 # Current, single window chat
 def chat_command(message, user): 
-  global chat_conn, chat_counter
-  chat_conn = socket(AF_INET, SOCK_STREAM)
-  user_data = send_udp(servecmd.query_user(user))
-  view.log_message(username+": "+message)
-  try:
-    chat_conn.connect((user_data[2], int(user_data[3])))
-    chat_conn.send(pickle.dumps(clientcmd.chat_message(message, username, chat_counter))) 
-    chat_counter += 1
-    recv_data, addr = chat_conn.recvfrom(1024)
-    response = pickle.loads(recv_data) 
-    view.log(response) 
-  except:
-    logging.exception("hm")
-    view.log("User is offline")
+  global chat_conn, chat_counter, friends
+  if user in friends:
+    chat_conn = socket(AF_INET, SOCK_STREAM)
+    user_data = send_udp(servecmd.query_user(user))
+    view.log_message(username+": "+message)
+    try:
+      chat_conn.connect((user_data[2], int(user_data[3])))
+      chat_conn.send(pickle.dumps(clientcmd.chat_message(message, username, chat_counter))) 
+      chat_counter += 1
+
+      # Get size of message
+      recv_data, addr = chat_conn.recvfrom(1024)
+      response = pickle.loads(recv_data) 
+
+      # Get rest of message
+      recv_data, addr = chat_conn.recvfrom(response + 1024)
+      response = pickle.loads(recv_data) 
+
+      view.log(response) 
+    except:
+      logging.exception("hm")
+      view.log(send_udp(clientcmd.user_offline(user_data[4])))
+  else:
+    view.log("You must be friends with this user before chatting with them")
 
 def peer_listener():
   # Set up main, non-blocking, server socket to listen for tcp connections
@@ -230,15 +244,21 @@ def peer_listener():
 
           # Switch on the different types of messages or return original if not recognized
           if message[0] == "FRIEND":
+            global friends
+            friends.append(message[1])
             message_queues[s].put(pickle.dumps(cmd.confirm))
 
           elif message[0] == "CHAT": 
             global chat_message
             chat_message = message[3]
-            message_queues[s].put(pickle.dumps(clientcmd.delivered_message(chat_message)))
-            view.username.set(message[2])
-            message_queues[s].put(pickle.dumps(size))
+            view.username.set(message[2])            
             view.log_message(message[2]+": "+message[1])
+
+            # Send Size of the message
+            message_queues[s].put(pickle.dumps(sys.getsizeof(chat_message)))
+
+            # Send message
+            message_queues[s].put(pickle.dumps(clientcmd.delivered_message(chat_message)))
 
           elif message[0] == "REQUEST":
             size = os.path.getsize(user_directory + username + ".json")
