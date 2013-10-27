@@ -31,6 +31,7 @@ UDP Commands:
 - LOGOUT select logout and click "Send (server)"
   - A success message will be returned
 ```
+
 TCP Commands: 
 ```
 - FRIEND select friend and give a username for "Username 1". Now click "Send (client)"
