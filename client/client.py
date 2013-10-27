@@ -143,12 +143,15 @@ def save_file(data):
 
 
 def save_profile(data):
-  directory = "../users/"+username+"/friends/"+data[1]+"/"
-  json_profile = json.loads(data[3])
+  recv_data, addr = chat_conn.recvfrom(data + 1024)
+  resp_file = pickle.loads(recv_data)
+  
+  directory = "../users/"+username+"/friends/"+resp_file[1]+"/"
+  json_profile = json.loads(resp_file[3])
   if not os.path.exists(directory):
     os.makedirs(directory)
 
-  with open(directory + data[1] + ".json", "w") as outfile:
+  with open(directory + resp_file[1] + ".json", "w") as outfile:
     json.dump(json_profile, outfile, indent=2)
 
 
@@ -224,17 +227,23 @@ def peer_listener():
             chat_message = message[3]
             message_queues[s].put(pickle.dumps(clientcmd.delivered_message(chat_message)))
             view.username.set(message[2])
+            message_queues[s].put(pickle.dumps(size))
             view.log_message(message[2]+": "+message[1])
 
           elif message[0] == "REQUEST":
+            size = os.path.getsize(user_directory + username + ".json")
             send_message = clientcmd.profile_message(message[1], message[2], json.dumps(profile))
+            message_queues[s].put(pickle.dumps(size))
             message_queues[s].put(pickle.dumps(send_message))
 
           elif message[0] == "RELAY": 
-            profile = open(friends_directory + message[1] + "/" + message[1] + ".json")
+            profile_file = friends_directory + message[1] + "/" + message[1] + ".json"
+            size = os.path.getsize(profile_file)
+            profile = open(profile_file)
 
             profile = json.load(profile)
             send_message = clientcmd.profile_message(message[1], message[2], json.dumps(profile))
+            message_queues[s].put(pickle.dumps(size))
             message_queues[s].put(pickle.dumps(send_message))
 
           elif message[0] == "GET": 

@@ -31,7 +31,7 @@ def probe_server():
     data, address = server_socket.recvfrom(1024)
     request = pickle.loads(data)
     command = request[0]
-
+    view.log(request)
     if command == "REGISTER":
       reply = register_user(request, conn)
       return_message = pickle.dumps(reply)
