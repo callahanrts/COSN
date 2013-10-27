@@ -20,337 +20,324 @@ from constants import *
 from servercmd import *
 from clientcmd import *
 
-SERVER_ADDR = ("", 9000)
+class Client:
+  def __init__(self, host, port, username):
+    self.username = username
+    self.host = host
+    self.port = int(port)
+    self.server_addr = ("", 9000)
 
-# Command Line Arguments
-host = str(sys.argv[1])
-port = int(sys.argv[2])
-username = str(sys.argv[3])
+    # Initialize Commands Class
+    self.cmd = Command(host, port, self.username)
+    self.servecmd = ServerCommands(self.cmd)
+    self.clientcmd = ClientCommands(self.cmd)
 
-# Create GUI Variable
-view = None
+    # Chat variables
+    self.chat_counter = 1
 
-# Initialize Commands Class
-cmd = Command(host, port, username)
-servecmd = ServerCommands(cmd)
-clientcmd = ClientCommands(cmd)
+    # Chat socket
+    self.chat_conn = None
 
-# Chat variables
-chatting_friend = None
-chat_counter = 1
+    # Friends list
+    self.friends = [ ]
 
-# Chat socket
-chat_conn = None
+    # Create Directories if they don't exist
+    self.user_directory = "../users/" + self.username + "/" 
+    self.create_dir_if_not_exists(self.user_directory)
 
-# Friends list
-friends = [ ]
+    self.friends_directory = self.user_directory + "friends/"
+    self.create_dir_if_not_exists(self.friends_directory)
 
-# Create Directories if they don't exist
-user_directory = "../users/" + username + "/" 
-if not os.path.exists(user_directory):
-  os.makedirs(user_directory)
+    # Profile data
+    try:
+      self.profile = open(self.user_directory + self.username + ".json")
+    except IOError:
+      copyfile("../extras/profile.json", "../users/" + self.username + "/" + self.username + ".json")
+      self.profile = open(self.user_directory + self.username + ".json")
+      self.profile = json.load(self.profile)
+      self.profile_version = 1
 
-friends_directory = user_directory + "friends/"
-if not os.path.exists(friends_directory):
-  os.makedirs(friends_directory)
+    # Listen for incoming peer connections
+    listener = Thread(target = self.peer_listener)
+    listener.start()
 
-# Profile data
-try:
-  profile = open(user_directory + username + ".json")
-except IOError:
-  copyfile("../extras/profile.json", "../users/" + username + "/" + username + ".json")
-  profile = open(user_directory + username + ".json")
-profile = json.load(profile)
-profile_version = 1
+    # Create GUI
+    self.view = MainWindow(self.server_command_handler, self.peer_command_handler, self.chat_command, self.username)
+    self.view.start()
 
-def server_command_handler(command, user):
-  global view
-  print(user)
-  if command == "REGISTER":
-    send_message = servecmd.register_user()
+  def create_dir_if_not_exists(self, path):
+    if not os.path.exists(path): os.makedirs(path)
 
-  elif command == "QUERY":
-    send_message = servecmd.query_user(user)
+  def server_command_handler(self, command, user):
+    if command == "REGISTER":
+      send_message = self.servecmd.register_user()
 
-  elif command == "LOGOUT":
-    send_message = servecmd.logout_user()
+    elif command == "QUERY":
+      send_message = self.servecmd.query_user(user)
 
-  view.log(send_udp(send_message))
+    elif command == "LOGOUT":
+      send_message = self.servecmd.logout_user()
 
-def send_udp(send_message):
-  global view
-  # UDP Socket to connect with server
-  udp_socket = socket(AF_INET, SOCK_DGRAM)
-  udp_socket.settimeout(2)
-  print(send_message)
-  try: 
-    udp_socket.sendto(pickle.dumps(send_message), SERVER_ADDR)
-    recv_data, addr = udp_socket.recvfrom(1024)
-    return pickle.loads(recv_data) 
-  except timeout:
-    view.log("Server timed out")
+    self.view.log(self.send_udp(send_message))
+
+  def send_udp(self, send_message):
+    # UDP Socket to connect with server
+    udp_socket = socket(AF_INET, SOCK_DGRAM)
+    udp_socket.settimeout(2)
+    print(send_message)
+    try: 
+      udp_socket.sendto(pickle.dumps(send_message), self.server_addr)
+      recv_data, addr = udp_socket.recvfrom(1024)
+      return pickle.loads(recv_data) 
+    except timeout:
+      self.view.log("Server timed out")
 
 
-def peer_command_handler(command, user, alt_data):
-  global chat_conn
-  global friends
-  request_for_profile = False
-  request_for_file = False
+  def peer_command_handler(self, command, user, alt_data):
+    request_for_profile = False
+    request_for_file = False
 
-  # Create socket to connect with a user
-  chat_conn = socket(AF_INET, SOCK_STREAM)
+    # Create socket to connect with a user
+    self.chat_conn = socket(AF_INET, SOCK_STREAM)
 
-  user_data = send_udp(servecmd.query_user(user))
+    user_data = self.send_udp(self.servecmd.query_user(user))
 
-  if command == "FRIEND":
-    friends.append(user)
-    send_message = clientcmd.befriend_user(username)
+    if command == "FRIEND":
+      self.friends.append(user)
+      send_message = self.clientcmd.befriend_user(self.username)
 
-  elif command == "REQUEST": 
-    send_message = clientcmd.request_profile(user, profile_version) # version but not needed yet
-    request_for_profile = True
+    elif command == "REQUEST": 
+      send_message = self.clientcmd.request_profile(user, self.profile_version) # version but not needed yet
+      request_for_profile = True
 
-  elif command == "RELAY": 
-    send_message = clientcmd.request_profile_relay(alt_data, profile_version) # version but not needed yet
-    request_for_profile = True
+    elif command == "RELAY": 
+      send_message = self.clientcmd.request_profile_relay(alt_data, self.profile_version) # version but not needed yet
+      request_for_profile = True
 
-  elif command == "GET": 
-    send_message = clientcmd.request_file(alt_data)
-    request_for_file = True
+    elif command == "GET": 
+      send_message = self.clientcmd.request_file(alt_data)
+      request_for_file = True
 
-  try:
-    print(user_data)
-    chat_conn.connect((user_data[2], int(user_data[3])))
-    chat_conn.send(pickle.dumps(send_message)) 
-    recv_data, addr = chat_conn.recvfrom(1024)
-    response = pickle.loads(recv_data) 
+    try:
+      print(user_data)
+      self.chat_conn.connect((user_data[2], int(user_data[3])))
+      self.chat_conn.send(pickle.dumps(send_message)) 
+      recv_data, addr = self.chat_conn.recvfrom(1024)
+      response = pickle.loads(recv_data) 
 
-    if request_for_profile:
-      save_profile(response)
-    elif request_for_file:
-      save_file(response)
-    else:
-      view.log(response) 
-  except:
-    logging.exception("hm")
-    view.log(send_udp(clientcmd.user_offline(user_data[4])))
+      if request_for_profile:
+        self.save_profile(response)
+      elif request_for_file:
+        self.save_file(response)
+      else:
+        self.view.log(response) 
+    except:
+      logging.exception("hm")
+      self.view.log(self.send_udp(self.clientcmd.user_offline(user_data[4])))
 
-  chat_conn.close()
+    self.chat_conn.close()
 
-def save_file(data):
-  global view
-  recv_data, addr = chat_conn.recvfrom(data + 1024)
-  resp_file = pickle.loads(recv_data) 
+  def save_file(self, data):
+    recv_data, addr = self.chat_conn.recvfrom(data + 1024)
+    resp_file = pickle.loads(recv_data) 
 
-  directory = "../users/"+username+"/friends/files/"
-  if not os.path.exists(directory):
-    os.makedirs(directory)
-
-  if data > 0:
-    # create file
-    f = open(directory+resp_file[1], "wb")
-    f.write(resp_file[3])
-    f.close()
-  else: 
-    view.log(resp_file)
-
-def save_profile(data):
-  global view
-  recv_data, addr = chat_conn.recvfrom(data + 1024)
-  resp_file = pickle.loads(recv_data)
-  if data > 0:
-    directory = "../users/"+username+"/friends/"+resp_file[1]+"/"
-    json_profile = json.loads(resp_file[3])
+    directory = "../users/"+self.username+"/friends/files/"
     if not os.path.exists(directory):
       os.makedirs(directory)
 
-    with open(directory + resp_file[1] + ".json", "w") as outfile:
-      json.dump(json_profile, outfile, indent=2)
-  else:
-    view.log(resp_file)
+    if data > 0:
+      # create file
+      f = open(directory+resp_file[1], "wb")
+      f.write(resp_file[3])
+      f.close()
+    else: 
+      self.view.log(resp_file)
 
-# Current, single window chat
-def chat_command(message, user): 
-  global chat_conn, chat_counter, friends
-  if user in friends:
-    chat_conn = socket(AF_INET, SOCK_STREAM)
-    user_data = send_udp(servecmd.query_user(user))
-    view.log_message(username+": "+message)
-    try:
-      chat_conn.connect((user_data[2], int(user_data[3])))
-      chat_conn.send(pickle.dumps(clientcmd.chat_message(message, username, chat_counter))) 
-      chat_counter += 1
+  def save_profile(self, data):
+    recv_data, addr = self.chat_conn.recvfrom(data + 1024)
+    resp_file = pickle.loads(recv_data)
+    if data > 0:
+      directory = "../users/"+self.username+"/friends/"+resp_file[1]+"/"
+      json_profile = json.loads(resp_file[3])
+      if not os.path.exists(directory):
+        os.makedirs(directory)
 
-      # Get size of message
-      recv_data, addr = chat_conn.recvfrom(1024)
-      response = pickle.loads(recv_data) 
+      with open(directory + resp_file[1] + ".json", "w") as outfile:
+        json.dump(json_profile, outfile, indent=2)
+    else:
+      self.view.log(resp_file)
 
-      # Get rest of message
-      recv_data, addr = chat_conn.recvfrom(response + 1024)
-      response = pickle.loads(recv_data) 
-
-      view.log(response) 
-    except:
-      logging.exception("hm")
-      view.log(send_udp(clientcmd.user_offline(user_data[4])))
-  else:
-    view.log("You must be friends with this user before chatting with them")
-
-def peer_listener():
-  # Set up main, non-blocking, server socket to listen for tcp connections
-  tcp_socket = socket(AF_INET, SOCK_STREAM)
-  tcp_socket.setblocking(0)
-  tcp_socket.bind((host, port))
-  tcp_socket.listen(1024)
-
-  # Sockets from which we expect to read
-  inputs = [ tcp_socket ]
-
-  # Sockets to which we expect to write
-  outputs = [ ]
-
-  # Outgoing message queues (socket:Queue)
-  message_queues = {}
-
-  while inputs:
-    print("===========================================================================")
-    # Wait for at least one of the sockets to be ready for processing
-    readable, writable, exceptional = select.select(inputs, outputs, inputs)
-
-    # Handle inputs
-    for s in readable:
-      if s is tcp_socket:
-        connection, client_address = s.accept()
-        connection.setblocking(0)
-        inputs.append(connection)
-
-        # Give the connection a queue for data we want to send
-        message_queues[connection] = queue.Queue()
-        print("Inputs:")
-        print(inputs)
-
-      else:
-        data = s.recv(1024)
-        if data: # A readable client socket has data
-          # Parse message using pickle
-          message = pickle.loads(data)
-          view.log(message)
-
-          # Print to console for debugging
-          print("Readable client socket has data")
-          print(message)
-
-          global profile
-
-          # Switch on the different types of messages or return original if not recognized
-          if message[0] == "FRIEND":
-            global friends
-            friends.append(message[1])
-            message_queues[s].put(pickle.dumps(cmd.confirm))
-
-          elif message[0] == "CHAT": 
-            global chat_message
-            chat_message = message[3]
-            view.username.set(message[2])            
-            view.log_message(message[2]+": "+message[1])
-
-            # Send Size of the message
-            message_queues[s].put(pickle.dumps(sys.getsizeof(chat_message)))
-
-            # Send message
-            message_queues[s].put(pickle.dumps(clientcmd.delivered_message(chat_message)))
-
-          elif message[0] == "REQUEST":
-            size = os.path.getsize(user_directory + username + ".json")
-            send_message = clientcmd.profile_message(message[1], message[2], json.dumps(profile))
-            message_queues[s].put(pickle.dumps(size))
-            message_queues[s].put(pickle.dumps(send_message))
-
-          elif message[0] == "RELAY": 
-            profile_file = friends_directory + message[1] + "/" + message[1] + ".json"
-            try:
-              size = os.path.getsize(profile_file)
-              profile = open(profile_file)
-              profile = json.load(profile)              
-              send_message = clientcmd.profile_message(message[1], message[2], json.dumps(profile))
-            except: 
-              size = 0
-              send_message = "I don't have the requested profile."
-            message_queues[s].put(pickle.dumps(size))
-            message_queues[s].put(pickle.dumps(send_message))
-
-          elif message[0] == "GET": 
-            try: 
-              size = os.path.getsize(user_directory + message[1])
-              f = open(user_directory+message[1], "rb")
-              bytes = f.read()
-              send_message = clientcmd.send_file(message[1], size, bytes)
-            except:
-              size = 0
-              send_message = "File does not exist"
-            message_queues[s].put(pickle.dumps(size))
-            message_queues[s].put(pickle.dumps(send_message))
-
-          elif message[0] == "PING":
-            send_message = clientcmd.pong_server(username, host, port)
-            message_queues[s].put(pickle.dumps(send_message))            
-
-          else:
-            print("Command " + str(message[0]) + " not recognized")
-            message_queues[s].put(data)
-
-          # Add output channel for response
-          if s not in outputs:
-            outputs.append(s)
-
-        else: # Interpret empty result as closed connection
-          print("Peer dropped out, closing connection")
-          # Stop listening for input on the connection
-          if s in outputs:
-            outputs.remove(s)
-          inputs.remove(s)
-          s.close()
-
-          # Remove message queue
-          del message_queues[s]
-
-    # Handle outputs
-    for s in writable:
+  # Current, single window chat
+  def chat_command(self, message, user): 
+    if user in self.friends:
+      self.chat_conn = socket(AF_INET, SOCK_STREAM)
+      user_data = self.send_udp(self.servecmd.query_user(user))
+      self.view.log_message(self.username+": "+message)
       try:
-        next_msg = message_queues[s].get_nowait()
-      except queue.Empty:
-        # No messages waiting so stop checking for writability.
-        print(sys.stderr)
-        print('output queue for')
-        print(s.getpeername())
-        print('is empty')
-        outputs.remove(s)
-      else:
-        print(sys.stderr)
-        print('sending "%s" to %s' % (next_msg, s.getpeername()))
-        s.send(next_msg)
+        self.chat_conn.connect((user_data[2], int(user_data[3])))
+        self.chat_conn.send(pickle.dumps(self.clientcmd.chat_message(message, self.username, self.chat_counter))) 
+        self.chat_counter += 1
 
-    # Handle "exceptional conditions"
-    for s in exceptional:
-      print ('handling exceptional condition for')
-      print(s.getpeername())
-      # Stop listening for input on the connection
-      inputs.remove(s)
-      if s in outputs:
-        outputs.remove(s)
-      s.close()
+        # Get size of message
+        recv_data, addr = self.chat_conn.recvfrom(1024)
+        response = pickle.loads(recv_data) 
 
-      # Remove message queue
-      del message_queues[s]
+        # Get rest of message
+        recv_data, addr = self.chat_conn.recvfrom(response + 1024)
+        response = pickle.loads(recv_data) 
+
+        self.view.log(response) 
+      except:
+        logging.exception("hm")
+        self.view.log(self.send_udp(self.clientcmd.user_offline(user_data[4])))
+    else:
+      self.view.log("You must be friends with this user before chatting with them")
+
+  def peer_listener(self):
+    # Set up main, non-blocking, server socket to listen for tcp connections
+    tcp_socket = socket(AF_INET, SOCK_STREAM)
+    tcp_socket.setblocking(0)
+    tcp_socket.bind((self.host, self.port))
+    tcp_socket.listen(1024)
+
+    # Sockets from which we expect to read
+    inputs = [ tcp_socket ]
+
+    # Sockets to which we expect to write
+    outputs = [ ]
+
+    # Outgoing message queues (socket:Queue)
+    message_queues = {}
+
+    while inputs:
+      print("===========================================================================")
+      # Wait for at least one of the sockets to be ready for processing
+      readable, writable, exceptional = select.select(inputs, outputs, inputs)
+
+      # Handle inputs
+      for s in readable:
+        if s is tcp_socket:
+          connection, client_address = s.accept()
+          connection.setblocking(0)
+          inputs.append(connection)
+
+          # Give the connection a queue for data we want to send
+          message_queues[connection] = queue.Queue()
+          print("Inputs:")
+          print(inputs)
+
+        else:
+          data = s.recv(1024)
+          if data: # A readable client socket has data
+            # Parse message using pickle
+            message = pickle.loads(data)
+            self.view.log(message)
   
-  # Close tcp connection when server exits
-  tcp_socket.close()
+            # Print to console for debugging
+            print("Readable client socket has data")
+            print(message)
+
+            # Switch on the different types of messages or return original if not recognized
+            if message[0] == "FRIEND":
+              self.friends.append(message[1])
+              message_queues[s].put(pickle.dumps(self.cmd.confirm))
+  
+            elif message[0] == "CHAT": 
+              chat_message = message[3]
+              self.view.username.set(message[2])            
+              self.view.log_message(message[2]+": "+message[1])
+  
+              # Send Size of the message
+              message_queues[s].put(pickle.dumps(sys.getsizeof(chat_message)))
+
+              # Send message
+              message_queues[s].put(pickle.dumps(self.clientcmd.delivered_message(chat_message)))
+
+            elif message[0] == "REQUEST":
+              size = os.path.getsize(self.user_directory + self.username + ".json")
+              send_message = self.clientcmd.profile_message(message[1], message[2], json.dumps(self.profile))
+              message_queues[s].put(pickle.dumps(size))
+              message_queues[s].put(pickle.dumps(send_message))
+
+            elif message[0] == "RELAY": 
+              profile_file = self.friends_directory + message[1] + "/" + message[1] + ".json"
+              try:
+                size = os.path.getsize(profile_file)
+                self.profile = open(profile_file)
+                self.profile = json.load(self.profile)              
+                send_message = self.clientcmd.profile_message(message[1], message[2], json.dumps(self.profile))
+              except: 
+                size = 0
+                send_message = "I don't have the requested profile."
+              message_queues[s].put(pickle.dumps(size))
+              message_queues[s].put(pickle.dumps(send_message))
+
+            elif message[0] == "GET": 
+              try: 
+                size = os.path.getsize(self.user_directory + message[1])
+                f = open(self.user_directory+message[1], "rb")
+                bytes = f.read()
+                send_message = self.clientcmd.send_file(message[1], size, bytes)
+              except:
+                size = 0
+                send_message = "File does not exist"
+              message_queues[s].put(pickle.dumps(size))
+              message_queues[s].put(pickle.dumps(send_message))
+
+            elif message[0] == "PING":
+              send_message = self.clientcmd.pong_server(self.username, host, port)
+              message_queues[s].put(pickle.dumps(send_message))            
+
+            else:
+              print("Command " + str(message[0]) + " not recognized")
+              message_queues[s].put(data)
+
+            # Add output channel for response
+            if s not in outputs:
+              outputs.append(s)
+
+          else: # Interpret empty result as closed connection
+            print("Peer dropped out, closing connection")
+            # Stop listening for input on the connection
+            if s in outputs:
+              outputs.remove(s)
+            inputs.remove(s)
+            s.close()
+
+            # Remove message queue
+            del message_queues[s]
+  
+      # Handle outputs
+      for s in writable:
+        try:
+          next_msg = message_queues[s].get_nowait()
+        except queue.Empty:
+          # No messages waiting so stop checking for writability.
+          print(sys.stderr)
+          print('output queue for')
+          print(s.getpeername())
+          print('is empty')
+          outputs.remove(s)
+        else:
+          print(sys.stderr)
+          print('sending "%s" to %s' % (next_msg, s.getpeername()))
+          s.send(next_msg)
+
+      # Handle "exceptional conditions"
+      for s in exceptional:
+        print ('handling exceptional condition for')
+        print(s.getpeername())
+        # Stop listening for input on the connection
+        inputs.remove(s)
+        if s in outputs:
+          outputs.remove(s)
+        s.close()
+
+        # Remove message queue
+        del message_queues[s]
+  
+    # Close tcp connection when server exits
+    tcp_socket.close()
 
 if __name__ == '__main__':
-  # Listen for incoming peer connections
-  listener = Thread(target = peer_listener)
-  listener.start()
-
-  # Create GUI
-  view = MainWindow(server_command_handler, peer_command_handler, chat_command, username)
-  view.start()
+  client = Client(sys.argv[1], sys.argv[2], sys.argv[3])
