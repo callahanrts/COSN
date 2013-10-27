@@ -1,3 +1,7 @@
+##############################################################
+# These functions are used to preload parameters to commands
+# that will be sent to another client
+##############################################################
 class ClientCommands:
   def __init__(self, constants):
     self.constants = constants

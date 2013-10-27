@@ -2,11 +2,10 @@
 class Command:
   def __init__(self, host, port, username):
     # Client-Server Command Strings
-    self.register = ["REGISTER", host, port, username] # Response => ACK
-    self.query    = ["QUERY", "1"]                     # Response => LOCATION
-    self.logout   = ["LOGOUT", username]               # Response => none  
-    self.down     = ["DOWN", username]
-    # ["LOCATION", user_id, host, port, username]
+    self.register = ["REGISTER", host, port, username]  # Response => ACK
+    self.query    = ["QUERY", "1"]                      # Response => LOCATION
+    self.logout   = ["LOGOUT", username]                # Response => none  
+    self.down     = ["DOWN", username]                  # Response => none 
 
     # P2P Command Strings
     self.ping      = ["PING", "user", "ip", "port"]     # Response => PONG

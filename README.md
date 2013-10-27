@@ -44,7 +44,7 @@ TCP Commands:
     friends/ directory
 - GET select get and give the username to request the file from in "Username 1". Then, put the file
   you are requesting in "Username 2" and click "Send (client)" The program will expect your file to 
-  be stored in the user's root directory "users/YOUR_USERNAME/"
+  be stored in the user's root directory "users/YOUR_USERNAME/". 
   - The requested file will be stored in "users/YOUR_USERNAME/files/" unless the requested file 
     could not be found. If it could not be found a message will be returned telling the user the 
     file does not exist. 
