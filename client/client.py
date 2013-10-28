@@ -196,14 +196,7 @@ class Client:
         self.chat_conn.send(pickle.dumps(self.clientcmd.chat_message(message, self.username, self.chat_counter))) 
         self.chat_counter += 1
 
-        # Get size of message
-        recv_data, addr = self.chat_conn.recvfrom(1024)
-        response = pickle.loads(recv_data) 
-
-        # Get rest of message
-        recv_data, addr = self.chat_conn.recvfrom(response + 1024)
-        response = pickle.loads(recv_data) 
-
+        response = self.retrieve_data() # Get message
         self.view.log(response) 
       except:
         logging.exception("hm")
@@ -246,12 +239,9 @@ class Client:
               message_queues[s].put(pickle.dumps(self.cmd.confirm)) # Queue message to be returned
   
             elif message[0] == "CHAT": 
-              chat_message = message[3]
               self.view.username.set(message[2])            
               self.view.log_message(message[2]+": "+message[1])
-  
-              message_queues[s].put(pickle.dumps(sys.getsizeof(chat_message)))                    # Send Size of the message
-              message_queues[s].put(pickle.dumps(self.clientcmd.delivered_message(chat_message))) # Send message
+              message_queues[s].put(pickle.dumps(self.clientcmd.delivered_message(message[3]))) # Send message
 
             elif message[0] == "REQUEST":
               send_message = self.clientcmd.profile_message(message[1], message[2], json.dumps(self.user)) 
