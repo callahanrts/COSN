@@ -153,11 +153,11 @@ class Client:
     self.create_dir_if_not_exists(directory)
 
     if len(data) > 0:  # Create File
-      f = open(directory+resp_file[1], "wb")
-      f.write(resp_file[3])
+      f = open(directory+data[1], "wb")
+      f.write(data[3])
       f.close()
     else: 
-      self.view.log(resp_file)
+      self.view.log(data)
 
   def retrieve_data(self):
     data = bytearray()
@@ -204,6 +204,48 @@ class Client:
     else:
       self.view.log("You must be friends with this user before chatting with them")
 
+  def respond_to(self, message):
+    # Switch on the different types of messages or return original if not recognized
+    if message[0] == "FRIEND":
+      self.friends.append(message[1])       # Add to friends list
+      return pickle.dumps(self.cmd.confirm) # Queue message to be returned
+
+    elif message[0] == "CHAT": 
+      self.view.username.set(message[2])            
+      self.view.log_message(message[2]+": "+message[1])
+      return pickle.dumps(self.clientcmd.delivered_message(message[3])) # Send message
+
+    elif message[0] == "REQUEST":
+      send_message = self.clientcmd.profile_message(message[1], message[2], json.dumps(self.user)) 
+      return pickle.dumps(send_message)  # Send message
+
+    elif message[0] == "RELAY": 
+      profile_file = self.friends_directory + message[1] + "/" + message[1] + ".json"
+      try:
+        self.user = json.load(open(profile_file)) # Read in user profile
+        send_message = self.clientcmd.profile_message(message[1], message[2], json.dumps(self.user))
+      except: 
+        send_message = "I don't have the requested profile."
+      return pickle.dumps(send_message) # Send profile
+
+    elif message[0] == "GET": 
+      try: 
+        size = os.path.getsize(self.user_directory + message[1])
+        f = open(self.user_directory+message[1], "rb")
+        bytes = f.read()
+        send_message = self.clientcmd.send_file(message[1], size, bytes)
+      except:
+        send_message = "File does not exist"
+      return pickle.dumps(send_message) # Send requested file
+
+    elif message[0] == "PING":
+      send_message = self.clientcmd.pong_server(self.username, self.host, self.port)
+      return pickle.dumps(send_message) # Send pong back to server
+
+    else:
+      print("Command " + str(message[0]) + " not recognized")
+      return data
+
   def peer_listener(self):
     # Set up main, non-blocking, server socket to listen for tcp connections
     tcp_socket = socket(AF_INET, SOCK_STREAM)
@@ -230,49 +272,9 @@ class Client:
         else:
           data = s.recv(1024)
           if data: 
-            message = pickle.loads(data) # Parse message using pickle
-            self.view.log(message)       # Log message to gui
-  
-            # Switch on the different types of messages or return original if not recognized
-            if message[0] == "FRIEND":
-              self.friends.append(message[1])                       # Add to friends list
-              message_queues[s].put(pickle.dumps(self.cmd.confirm)) # Queue message to be returned
-  
-            elif message[0] == "CHAT": 
-              self.view.username.set(message[2])            
-              self.view.log_message(message[2]+": "+message[1])
-              message_queues[s].put(pickle.dumps(self.clientcmd.delivered_message(message[3]))) # Send message
-
-            elif message[0] == "REQUEST":
-              send_message = self.clientcmd.profile_message(message[1], message[2], json.dumps(self.user)) 
-              message_queues[s].put(pickle.dumps(send_message))  # Send message
- 
-            elif message[0] == "RELAY": 
-              profile_file = self.friends_directory + message[1] + "/" + message[1] + ".json"
-              try:
-                self.user = json.load(open(profile_file)) # Read in user profile
-                send_message = self.clientcmd.profile_message(message[1], message[2], json.dumps(self.user))
-              except: 
-                send_message = "I don't have the requested profile."
-              message_queues[s].put(pickle.dumps(send_message)) # Send profile
-
-            elif message[0] == "GET": 
-              try: 
-                size = os.path.getsize(self.user_directory + message[1])
-                f = open(self.user_directory+message[1], "rb")
-                bytes = f.read()
-                send_message = self.clientcmd.send_file(message[1], size, bytes)
-              except:
-                send_message = "File does not exist"
-              message_queues[s].put(pickle.dumps(send_message)) # Send requested file
-
-            elif message[0] == "PING":
-              send_message = self.clientcmd.pong_server(self.username, self.host, self.port)
-              message_queues[s].put(pickle.dumps(send_message)) # Send pong back to server
-
-            else:
-              print("Command " + str(message[0]) + " not recognized")
-              message_queues[s].put(data)
+            message = pickle.loads(data)                    # Parse message using pickle
+            self.view.log(message)                          # Log message to gui
+            message_queues[s].put(self.respond_to(message)) # Add response to queue
 
             if s not in outputs:
               outputs.append(s) # Add output channel for response
@@ -285,22 +287,19 @@ class Client:
             inputs.remove(s)
             s.close()
 
-            # Remove message queue
-            del message_queues[s]
+            del message_queues[s] # Remove message queue
   
       # Handle outputs
       for s in writable:
         try:
           next_msg = message_queues[s].get_nowait()
         except queue.Empty:
-          # No messages waiting so stop checking for writability.
-          outputs.remove(s)
+          outputs.remove(s) # No messages waiting so stop checking for writability.
         else:
           s.sendall(next_msg)
 
-      # Handle "exceptional conditions"
+      # Handle "exceptional conditions" by no longer listening for input on the connection
       for s in exceptional:
-        # Stop listening for input on the connection
         inputs.remove(s)
         if s in outputs:
           outputs.remove(s)
