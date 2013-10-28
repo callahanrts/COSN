@@ -16,8 +16,8 @@ Changes I've made to the spec:
 ```
 - Messages sent to client and server are not done so with a string. They placed into an array 
   and then pickled and sent over the connection. 
-- I decided to use JSON as opposed to XML for its robustness and the awesome answers on this
-  SO post: http://stackoverflow.com/questions/3536893/what-are-the-pros-and-cons-of-xml-and-json 
+- I decided to use JSON as opposed to XML for its robustness and the answers on this SO 
+  post: http://stackoverflow.com/questions/3536893/what-are-the-pros-and-cons-of-xml-and-json 
 - Erros do not get logged to a file. They get logged in the gui
 ```
 
@@ -56,6 +56,20 @@ TCP Commands:
     username. UserB can then fill out the message input and click send to reply. This can be done with
     multiple users at the same time, so long as the correct username is in the "Username 1" field. 
 ```
+
+Description of Included files:
+
+- client
+  - client.py - The main client program. Interacts with the server and other instances of clients
+  - client_gui.py - Creates a main window and widgets to be used by a client instance
+  - clientcmd.py - A set of functions used to create commands to be sent to another client
+- extras
+  - constants.py - Templates for many of the commands that will be used by the client
+  - gui_builder.py - A class to aid in the building and configuring of windows and widgets
+  - profile.json - A template for user profiles. It gets automatically placed in a user's directory if they don't have it. 
+  - text - a plaintext template that can be used to send from client to client. It is large enough to require more than a single packet when sending. 
+- license
+  - license - open source MIT license agreement
 
 
 
