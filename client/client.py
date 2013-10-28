@@ -33,6 +33,7 @@ class Client:
     self.servecmd = ServerCommands(self.cmd)
     self.clientcmd = ClientCommands(self.cmd)
 
+    print("_!@#_".join(self.cmd.ping))
     # Chat variables
     self.chat_counter = 1
 
@@ -130,8 +131,7 @@ class Client:
     try:
       self.chat_conn.connect((user_data[2], int(user_data[3])))
       self.chat_conn.send(pickle.dumps(send_message)) 
-      recv_data, addr = self.chat_conn.recvfrom(1024)
-      response = pickle.loads(recv_data) 
+      response = self.retrieve_data()
 
       if request_for_profile:
         self.save_profile(response)
@@ -148,13 +148,11 @@ class Client:
     self.chat_conn.close()
 
   def save_file(self, data):
-    resp_file = self.retrieve_data()
-
     # Set directory or create if needed
     directory = "../users/"+self.username+"/friends/files/"
     self.create_dir_if_not_exists(directory)
 
-    if data > 0:  # Create File
+    if len(data) > 0:  # Create File
       f = open(directory+resp_file[1], "wb")
       f.write(resp_file[3])
       f.close()
@@ -162,25 +160,28 @@ class Client:
       self.view.log(resp_file)
 
   def retrieve_data(self):
-    recv_data, addr = self.chat_conn.recvfrom(data + 1024)
-    return pickle.loads(recv_data) 
+    data = bytearray()
+    while 1:
+      recv_data = self.chat_conn.recv(1024)
+      data.extend(recv_data)
+      if sys.getsizeof(recv_data) < 1024: break
+    return pickle.loads(data)
 
   def save_profile(self, data):
-    resp_file = retrieve_data()
-    if data > 0:
+    if len(data) > 1:
       # Set directory or create if needed
-      directory = "../users/"+self.username+"/friends/"+resp_file[1]+"/"
+      directory = "../users/"+self.username+"/friends/"+data[1]+"/"
       self.create_dir_if_not_exists(directory)
 
       # Parse JSON profile
-      json_profile = json.loads(resp_file[3])
+      json_profile = json.loads(data[3])
 
       # Write to file
-      with open(directory + resp_file[1] + ".json", "w") as outfile:
+      with open(directory + data[1] + ".json", "w") as outfile:
         json.dump(json_profile, outfile, indent=2)
     
     else:
-      self.view.log(resp_file)
+      self.view.log(data)
 
   # Current, single window chat
   def chat_command(self, message, user): 
@@ -209,9 +210,6 @@ class Client:
         self.view.log(self.send_udp(self.clientcmd.user_offline(user_data[4])))
     else:
       self.view.log("You must be friends with this user before chatting with them")
-
-  def accept_connection(self, s):
-
 
   def peer_listener(self):
     # Set up main, non-blocking, server socket to listen for tcp connections
@@ -256,21 +254,16 @@ class Client:
               message_queues[s].put(pickle.dumps(self.clientcmd.delivered_message(chat_message))) # Send message
 
             elif message[0] == "REQUEST":
-              size = os.path.getsize(self.user_directory + self.username + ".json")
               send_message = self.clientcmd.profile_message(message[1], message[2], json.dumps(self.user)) 
-              message_queues[s].put(pickle.dumps(size))          # Send size of the message
               message_queues[s].put(pickle.dumps(send_message))  # Send message
  
             elif message[0] == "RELAY": 
               profile_file = self.friends_directory + message[1] + "/" + message[1] + ".json"
               try:
-                size = os.path.getsize(profile_file)      # Get size of profile
                 self.user = json.load(open(profile_file)) # Read in user profile
                 send_message = self.clientcmd.profile_message(message[1], message[2], json.dumps(self.user))
               except: 
-                size = 0
                 send_message = "I don't have the requested profile."
-              message_queues[s].put(pickle.dumps(size))         # Send size
               message_queues[s].put(pickle.dumps(send_message)) # Send profile
 
             elif message[0] == "GET": 
@@ -280,9 +273,7 @@ class Client:
                 bytes = f.read()
                 send_message = self.clientcmd.send_file(message[1], size, bytes)
               except:
-                size = 0
                 send_message = "File does not exist"
-              message_queues[s].put(pickle.dumps(size))         # Send size
               message_queues[s].put(pickle.dumps(send_message)) # Send requested file
 
             elif message[0] == "PING":
@@ -315,7 +306,7 @@ class Client:
           # No messages waiting so stop checking for writability.
           outputs.remove(s)
         else:
-          s.send(next_msg)
+          s.sendall(next_msg)
 
       # Handle "exceptional conditions"
       for s in exceptional:
