@@ -3,17 +3,16 @@ from socket import *
 
 class ServerGui:
   def __init__(self, ping_command):
+    # Initialize basic window properties
     self.root = Tk()
     self.setTitle("Server")
     self.setGeometry("400x420")
+
+    # Add server gui elements
     self.initServerLabel("Server Log Messages")
     self.initListBox()
-    self.username = StringVar()
-
     frame = Frame(self.root)
     frame.pack()
-    Entry(frame, textvariable = self.username, width=30).pack(side=LEFT)
-    Button(frame, text= "Ping User", command = lambda: ping_command(self.username.get())).pack(side=RIGHT)
 
   def setTitle(self, title):
     self.root.title(title)
@@ -36,6 +35,7 @@ class ServerGui:
     self.listbox.config(yscrollcommand=scrollbar.set)
     scrollbar.config(command=self.listbox.yview)
 
+  # Function for logging messages to the server's message box
   def log(self, message):
     self.listbox.insert(END, message)
 
