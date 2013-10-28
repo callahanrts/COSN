@@ -1,3 +1,5 @@
+Cody Callahan
+View this readme here to view it with optimal formatting https://github.com/callahanrts/COSN
 
 Client-Server / P2P project for a networkin course
 
@@ -70,7 +72,19 @@ Description of Included files:
   - text - a plaintext template that can be used to send from client to client. It is large enough to require more than a single packet when sending. 
 - license
   - license - open source MIT license agreement
-
-
+- server
+  - cosn.db - The sqlite database used to store client information
+  - server.py - The main server program. Interacts with clients and the database. 
+  - server_functions.py - A list of functions used by the server to deal with the database and construct useful responses to the client.
+  - server_gui.py - A class used to build and maintain the main window for the server. 
+  - servercmd.py - These are commands for the client to construct and send to the server
+- users (Structure generated and manipulated by the client program)
+  - USER
+    - files
+    - friends
+      - USER B
+        - profile.json
+      - USER C
+        - profile.json
 
 
