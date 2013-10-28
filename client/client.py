@@ -246,6 +246,51 @@ class Client:
       print("Command " + str(message[0]) + " not recognized")
       return data
 
+  def handle_inputs(self, readable, inputs, outputs, message_queues, tcp_socket):
+    for s in readable:
+      if s is tcp_socket:
+        connection, client_address = s.accept()    # Accept connection
+        connection.setblocking(0)                  # Don't allow socket blocking
+        inputs.append(connection)                  # add connection to inputs arr
+        message_queues[connection] = queue.Queue() # Create message queue
+
+      else:
+        data = s.recv(1024)
+        if data: 
+          message = pickle.loads(data)                    # Parse message using pickle
+          self.view.log(message)                          # Log message to gui
+          message_queues[s].put(self.respond_to(message)) # Add response to queue
+
+          if s not in outputs:
+            outputs.append(s) # Add output channel for response
+
+        else: # Interpret empty result as closed connection
+          print("Peer dropped out, closing connection")
+          # Stop listening for input on the connection
+          if s in outputs:
+            outputs.remove(s)
+          inputs.remove(s)
+          s.close()
+
+          del message_queues[s] # Remove message queue
+
+  def handle_outputs(self, writable, outputs, message_queues):
+    for s in writable:
+      try:
+        next_msg = message_queues[s].get_nowait()
+      except queue.Empty:
+        outputs.remove(s) # No messages waiting so stop checking for writability.
+      else:
+        s.sendall(next_msg)
+
+  def handle_exceptionals(self, exceptional, inputs, outputs, message_queues):
+    for s in exceptional:
+      inputs.remove(s)
+      if s in outputs:
+        outputs.remove(s)
+      s.close()
+      del message_queues[s] # Remove message queue
+
   def peer_listener(self):
     # Set up main, non-blocking, server socket to listen for tcp connections
     tcp_socket = socket(AF_INET, SOCK_STREAM)
@@ -260,52 +305,9 @@ class Client:
     while inputs:
       # Wait for at least one of the sockets to be ready for processing
       readable, writable, exceptional = select.select(inputs, outputs, inputs)
-
-      # Handle inputs
-      for s in readable:
-        if s is tcp_socket:
-          connection, client_address = s.accept()    # Accept connection
-          connection.setblocking(0)                  # Don't allow socket blocking
-          inputs.append(connection)                  # add connection to inputs arr
-          message_queues[connection] = queue.Queue() # Create message queue
-
-        else:
-          data = s.recv(1024)
-          if data: 
-            message = pickle.loads(data)                    # Parse message using pickle
-            self.view.log(message)                          # Log message to gui
-            message_queues[s].put(self.respond_to(message)) # Add response to queue
-
-            if s not in outputs:
-              outputs.append(s) # Add output channel for response
-
-          else: # Interpret empty result as closed connection
-            print("Peer dropped out, closing connection")
-            # Stop listening for input on the connection
-            if s in outputs:
-              outputs.remove(s)
-            inputs.remove(s)
-            s.close()
-
-            del message_queues[s] # Remove message queue
-  
-      # Handle outputs
-      for s in writable:
-        try:
-          next_msg = message_queues[s].get_nowait()
-        except queue.Empty:
-          outputs.remove(s) # No messages waiting so stop checking for writability.
-        else:
-          s.sendall(next_msg)
-
-      # Handle "exceptional conditions" by no longer listening for input on the connection
-      for s in exceptional:
-        inputs.remove(s)
-        if s in outputs:
-          outputs.remove(s)
-        s.close()
-
-        del message_queues[s] # Remove message queue
+      self.handle_inputs(readable, inputs, outputs, message_queues, tcp_socket) # Handle inputs  
+      self.handle_outputs(writable, outputs, message_queues)                    # Handle outputes
+      self.handle_exceptionals(exceptional, inputs, outputs, message_queues)    # Handle "exceptional conditions"
  
     tcp_socket.close() # Close tcp connection when server exits
 
