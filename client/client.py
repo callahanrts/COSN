@@ -33,14 +33,16 @@ class Client:
     self.servecmd = ServerCommands(self.cmd)
     self.clientcmd = ClientCommands(self.cmd)
 
-    print("_!@#_".join(self.cmd.ping))
     # Chat variables
     self.chat_counter = 1
 
     # Friends list
     self.friends = [ ]
 
+    # Create directories if they don't exist
     self.setup_client_directories()
+
+    # Create user profile from template if it doesn't exist
     self.retrieve_user_profile()
 
     # Load user profile as JSON
@@ -160,11 +162,16 @@ class Client:
       self.view.log(data)
 
   def retrieve_data(self):
+    self.chat_conn.settimeout(2)
     data = bytearray()
     while 1:
-      recv_data = self.chat_conn.recv(1024)
-      data.extend(recv_data)
-      if sys.getsizeof(recv_data) < 1024: break
+      try:
+        recv_data = self.chat_conn.recv(1024)
+        data.extend(recv_data)
+        self.chat_conn.settimeout(0.25)
+      except timeout:
+        self.chat_conn.settimeout(2)
+        break
     return pickle.loads(data)
 
   def save_profile(self, data):

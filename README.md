@@ -53,7 +53,8 @@ TCP Commands:
   - UserA types UserB's username to start chat with in "Username 1" and fills out the chat message 
     input. UserA Presses send to chat.
   - UserB will get UserA's chat and automatically UserB's "Username 1" field will be set to UserA's 
-    username. UserB can then fill out the message input and click send to reply
+    username. UserB can then fill out the message input and click send to reply. This can be done with
+    multiple users at the same time, so long as the correct username is in the "Username 1" field. 
 ```
 
 
