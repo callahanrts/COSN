@@ -61,30 +61,31 @@ TCP Commands:
 
 Description of Included files:
 
-- client
+- client/
   - client.py - The main client program. Interacts with the server and other instances of clients
   - client_gui.py - Creates a main window and widgets to be used by a client instance
   - clientcmd.py - A set of functions used to create commands to be sent to another client
-- extras
+- extras/
   - constants.py - Templates for many of the commands that will be used by the client
   - gui_builder.py - A class to aid in the building and configuring of windows and widgets
   - profile.json - A template for user profiles. It gets automatically placed in a user's directory if they don't have it. 
   - text - a plaintext template that can be used to send from client to client. It is large enough to require more than a single packet when sending. 
-- license
+- license/
   - license - open source MIT license agreement
-- server
+- server/
   - cosn.db - The sqlite database used to store client information
   - server.py - The main server program. Interacts with clients and the database. 
   - server_functions.py - A list of functions used by the server to deal with the database and construct useful responses to the client.
   - server_gui.py - A class used to build and maintain the main window for the server. 
   - servercmd.py - These are commands for the client to construct and send to the server
 - users (Structure generated and manipulated by the client program)
-  - USER
-    - files
-    - friends
-      - USER B
+  - USER/
+    - files/
+      - example.txt
+    - friends/
+      - USER B/
         - profile.json
-      - USER C
+      - USER C/
         - profile.json
 
 
