@@ -326,6 +326,8 @@ class Client:
     if not auth_code:
       self.view.log("Copy the following url into your browser to link dropbox")
       self.view.log(self.dropbox.auth_url())
+    else:
+      print(self.dropbox.get_token(auth_code))
 
 if __name__ == '__main__':
   client = Client(sys.argv[1], sys.argv[2], sys.argv[3])
