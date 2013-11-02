@@ -19,6 +19,7 @@ from client_gui import *
 from constants import *
 from servercmd import *
 from clientcmd import *
+from handlers import *
 
 class Client:
   def __init__(self, host, port, username):
@@ -32,6 +33,9 @@ class Client:
     self.cmd = Command(host, port, self.username)
     self.servecmd = ServerCommands(self.cmd)
     self.clientcmd = ClientCommands(self.cmd)
+
+    # Initialize Command Handler
+    self.cmd_handler = CommandHandler(self.servecmd, self.clientcmd)
 
     # Chat variables
     self.chat_counter = 1
@@ -53,7 +57,7 @@ class Client:
     listener.start()
 
     # Create GUI
-    self.view = MainWindow(self.server_command_handler, self.peer_command_handler, self.chat_command, self.username)
+    self.view = MainWindow(self.send_to_server, self.peer_command_handler, self.chat_command, self.username)
     self.view.start()
 
   def setup_client_directories(self):
@@ -76,17 +80,8 @@ class Client:
   def create_dir_if_not_exists(self, path):
     if not os.path.exists(path): os.makedirs(path)
 
-  def server_command_handler(self, command, user):
-    if command == "REGISTER":
-      send_message = self.servecmd.register_user()
-
-    elif command == "QUERY":
-      send_message = self.servecmd.query_user(user)
-
-    elif command == "LOGOUT":
-      send_message = self.servecmd.logout_user()
-
-    self.view.log(self.send_udp(send_message))
+  def send_to_server(self, command, user):
+    self.view.log(self.send_udp(self.cmd_handler.handle_server_command(command, user)))
 
   def send_udp(self, send_message):
     # UDP Socket to connect with server
@@ -105,44 +100,32 @@ class Client:
 
 
   def peer_command_handler(self, command, user, alt_data):
-    request_for_profile = False
-    request_for_file = False
-
     # Create socket to connect with a user
     self.chat_conn = socket(AF_INET, SOCK_STREAM)
 
-    # Respond to commands
-    if command == "FRIEND":
-      self.friends.append(user)
-      send_message = self.clientcmd.befriend_user(self.username)
-
-    elif command == "REQUEST": 
-      send_message = self.clientcmd.request_profile(user, self.user["profile"]["info"]["version"]) # version but not needed yet
-      request_for_profile = True
-
-    elif command == "RELAY": 
-      send_message = self.clientcmd.request_profile_relay(alt_data, self.user["profile"]["info"]["version"]) # version but not needed yet
-      request_for_profile = True
-
-    elif command == "GET": 
-      send_message = self.clientcmd.request_file(alt_data)
-      request_for_file = True
+    # Handle Command
+    return_type, send_message = self.cmd_handler.handle_peer_commands(command, user, alt_data)
 
     # Get user data
     user_data = self.send_udp(self.servecmd.query_user(user))
+
     try:
       self.chat_conn.connect((user_data[2], int(user_data[3])))
       self.chat_conn.send(pickle.dumps(send_message)) 
       response = self.retrieve_data()
 
-      if request_for_profile:
+      if return_type == "profile":
         self.save_profile(response)
 
-      elif request_for_file:
+      elif return_type == "file":
         self.save_file(response)
+
+      elif return_type == "friend":
+        self.friends.append(user)
 
       else:
         self.view.log(response) 
+        
     except: # log errors
       logging.exception("hm")
       self.view.log(self.send_udp(self.clientcmd.user_offline(user_data[4])))
@@ -190,26 +173,26 @@ class Client:
     else:
       self.view.log(data)
 
-  # Current, single window chat
-  def chat_command(self, message, user): 
-    if user in self.friends:
-      # Open connection and get user
-      self.chat_conn = socket(AF_INET, SOCK_STREAM)
-      user_data = self.send_udp(self.servecmd.query_user(user))
-      self.view.log_message(self.username+": "+message)
+  # # Current, single window chat
+  # def chat_command(self, message, user): 
+  #   if user in self.friends:
+  #     # Open connection and get user
+  #     self.chat_conn = socket(AF_INET, SOCK_STREAM)
+  #     user_data = self.send_udp(self.servecmd.query_user(user))
+  #     self.view.log_message(self.username+": "+message)
 
-      try:
-        self.chat_conn.connect((user_data[2], int(user_data[3])))
-        self.chat_conn.send(pickle.dumps(self.clientcmd.chat_message(message, self.username, self.chat_counter))) 
-        self.chat_counter += 1
+  #     try:
+  #       self.chat_conn.connect((user_data[2], int(user_data[3])))
+  #       self.chat_conn.send(pickle.dumps(self.clientcmd.chat_message(message, self.username, self.chat_counter))) 
+  #       self.chat_counter += 1
 
-        response = self.retrieve_data() # Get message
-        self.view.log(response) 
-      except:
-        logging.exception("hm")
-        self.view.log(self.send_udp(self.clientcmd.user_offline(user_data[4])))
-    else:
-      self.view.log("You must be friends with this user before chatting with them")
+  #       response = self.retrieve_data() # Get message
+  #       self.view.log(response) 
+  #     except:
+  #       logging.exception("hm")
+  #       self.view.log(self.send_udp(self.clientcmd.user_offline(user_data[4])))
+  #   else:
+  #     self.view.log("You must be friends with this user before chatting with them")
 
   def respond_to(self, message):
     # Switch on the different types of messages or return original if not recognized

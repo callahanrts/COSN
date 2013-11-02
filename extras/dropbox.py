@@ -1,13 +1,5 @@
-#!/usr/local/bin/python2
-import cmd
-import locale
-import os
-import pprint
-import shlex
-import sys
-
-from dropbox import client, rest
-
+# Include the Dropbox SDK
+import dropbox
 
 class Dropbox:
   def __init__(self):
@@ -15,11 +7,29 @@ class Dropbox:
     self.app_key = '2ycmk3mndjuvija'
     self.app_secret = 'f6v4pvhsirmr5tw'
 
+    self.flow = dropbox.client.DropboxOAuth2FlowNoRedirect(self.app_key, self.app_secret)
 
 
   def auth_url(self):
     return self.flow.start()
 
-if __name__ == '__main__':
-  db = Dropbox()
-  #print(db.auth_url())
+
+
+# # This will fail if the user enters an invalid authorization code
+# access_token, user_id = flow.finish(code)
+
+# client = dropbox.client.DropboxClient(access_token)
+# print 'linked account: ', client.account_info()
+
+# f = open('working-draft.txt')
+# response = client.put_file('/magnum-opus.txt', f)
+# print 'uploaded: ', response
+
+# folder_metadata = client.metadata('/')
+# print 'metadata: ', folder_metadata
+
+# f, metadata = client.get_file_and_metadata('/magnum-opus.txt')
+# out = open('magnum-opus.txt', 'w')
+# out.write(f.read())
+# out.close()
+# print metadata
