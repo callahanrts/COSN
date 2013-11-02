@@ -13,6 +13,9 @@ class Dropbox:
   def auth_url(self):
     return self.flow.start()
 
+  def get_token(self, auth_code):
+    # This will fail if the user enters an invalid authorization code
+    self.access_token, self.user_id = self.flow.finish(auth_code)
 
 
 # # This will fail if the user enters an invalid authorization code
