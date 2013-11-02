@@ -30,7 +30,7 @@ class Client:
     self.server_addr = ("", 9000)
 
     # Dropbox Object
-    self.dropbox = Dropbox()
+    self.dropbox = Dropbox(username)
 
     # Initialize Command Classes
     self.cmd = Command(host, port, self.username)
