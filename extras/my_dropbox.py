@@ -19,6 +19,8 @@ class Dropbox:
     # Set token if exists
     self.token = self.has_token()
 
+    # Set client and account information 
+    if self.token != '': self.set_client
 
   def auth_url(self):
     return self.flow.start()
@@ -27,9 +29,14 @@ class Dropbox:
     if self.token == '':
       # This will fail if the user enters an invalid authorization code
       self.token, self.user_id = self.flow.finish(auth_code)
+      self.set_client()
       self.conn.execute("INSERT INTO dropbox(username, token) VALUES(?, ?)", [self.username, self.token])
       self.conn.commit()
     return self.token
+
+  def set_client(self):
+    self.client = dropbox.client.DropboxClient(self.token) 
+    self.acct = self.client.account_info()
 
   def has_token(self):
     cursor = self.conn.execute("SELECT * FROM dropbox WHERE username = ? LIMIT 1", [self.username])
@@ -39,6 +46,14 @@ class Dropbox:
         token = row[1]
     if token: return token
     return ''
+
+  def upload_profile(self):
+    
+
+  def upload_file(self, filename):
+    f = open('working-draft.txt')
+    response = client.put_file('/magnum-opus.txt', f)
+    print "uploaded:", response
 
 # # This will fail if the user enters an invalid authorization code
 # access_token, user_id = flow.finish(code)
