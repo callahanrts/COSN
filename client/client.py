@@ -57,7 +57,7 @@ class Client:
     listener.start()
 
     # Create GUI
-    self.view = MainWindow(self.server_command_handler, self.peer_command_handler, self.chat_command, self.username, self.link_dropbox)
+    self.view = MainWindow(self.server_command_handler, self.peer_command_handler, self.chat_command, self.username, self.link_dropbox, self.upload_profile)
     self.view.start()
 
   def setup_client_directories(self):
@@ -328,6 +328,9 @@ class Client:
       self.view.log(self.dropbox.auth_url())
     else:
       print(self.dropbox.get_token(auth_code))
+
+  def upload_profile(self):
+    self.dropbox.upload_profile()
 
 if __name__ == '__main__':
   client = Client(sys.argv[1], sys.argv[2], sys.argv[3])

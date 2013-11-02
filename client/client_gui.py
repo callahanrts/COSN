@@ -8,16 +8,16 @@ sys.path.append('../extras')
 from gui_builder import * 
 
 class MainWindow:
-  def __init__(self, server_command, peer_command, chat_command, title, link_dropbox):
+  def __init__(self, server_command, peer_command, chat_command, title, link_dropbox, upload_profile):
     self.gb = GuiBuilder()
     self.root = Tk()
-    self.initMainWindow(server_command, peer_command, chat_command, title, link_dropbox)
+    self.initMainWindow(server_command, peer_command, chat_command, title, link_dropbox, upload_profile)
 
   # Create the main window
-  def initMainWindow(self, server_command, peer_command, chat_command, title, link_dropbox):
+  def initMainWindow(self, server_command, peer_command, chat_command, title, link_dropbox, upload_profile):
     # Configure window settings
     self.gb.setTitle(title, self.root)
-    self.gb.setGeometry("400x475", self.root)
+    self.gb.setGeometry("400x500", self.root)
 
     # Command label
     self.gb.createLabel("Command", self.root).pack()
@@ -98,6 +98,7 @@ class MainWindow:
     # Link dropbox button
     self.gb.createButton("Link Dropbox", lambda: link_dropbox(self.auth_code.get()), frame3).pack(side = RIGHT)
 
+    self.gb.createButton("Update Profile", lambda: upload_profile(), self.root).pack()
 
   # Log messages when events happen
   def log(self, message):

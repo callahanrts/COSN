@@ -1,9 +1,15 @@
 # Include the Dropbox SDK
 import dropbox
 import sqlite3
+import pickle
+import json
 
 class Dropbox:
   def __init__(self, username):
+    # Set user path and directory
+    self.user_dir = "../users/"
+    self.user_path = self.user_dir + username + "/" 
+
     # Get your app key and secret from the Dropbox developer website
     self.app_key = '2ycmk3mndjuvija'
     self.app_secret = 'f6v4pvhsirmr5tw'
@@ -20,7 +26,7 @@ class Dropbox:
     self.token = self.has_token()
 
     # Set client and account information 
-    if self.token != '': self.set_client
+    if not self.token == '': self.set_client()
 
   def auth_url(self):
     return self.flow.start()
@@ -48,12 +54,16 @@ class Dropbox:
     return ''
 
   def upload_profile(self):
-    
+    f = open(self.user_path + self.username + ".json")
+    self.upload(f, self.username + ".json")
 
   def upload_file(self, filename):
-    f = open('working-draft.txt')
-    response = client.put_file('/magnum-opus.txt', f)
-    print "uploaded:", response
+    f = open(user_dir + filename)
+    self.upload(f, filename)
+
+  def upload(self, f, filename):
+    response = self.client.put_file(self.username + "/" + filename, f.read())
+    print("uploaded: \n")
 
 # # This will fail if the user enters an invalid authorization code
 # access_token, user_id = flow.finish(code)
