@@ -19,6 +19,7 @@ from client_gui import *
 from constants import *
 from servercmd import *
 from clientcmd import *
+from my_dropbox import *
 
 class Client:
   def __init__(self, host, port, username):
@@ -27,6 +28,9 @@ class Client:
     self.host = host
     self.port = int(port)
     self.server_addr = ("", 9000)
+
+    # Dropbox Object
+    self.dropbox = Dropbox()
 
     # Initialize Command Classes
     self.cmd = Command(host, port, self.username)
@@ -53,7 +57,7 @@ class Client:
     listener.start()
 
     # Create GUI
-    self.view = MainWindow(self.server_command_handler, self.peer_command_handler, self.chat_command, self.username)
+    self.view = MainWindow(self.server_command_handler, self.peer_command_handler, self.chat_command, self.username, self.link_dropbox)
     self.view.start()
 
   def setup_client_directories(self):
@@ -318,5 +322,21 @@ class Client:
  
     tcp_socket.close() # Close tcp connection when server exits
 
+  def link_dropbox(self, auth_code):
+    if not auth_code:
+      self.view.log("Copy the following url into your browser to link dropbox")
+      self.view.log(self.dropbox.auth_url())
+
 if __name__ == '__main__':
   client = Client(sys.argv[1], sys.argv[2], sys.argv[3])
+
+
+
+
+
+
+
+
+
+
+

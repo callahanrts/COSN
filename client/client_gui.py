@@ -8,16 +8,16 @@ sys.path.append('../extras')
 from gui_builder import * 
 
 class MainWindow:
-  def __init__(self, server_command, peer_command, chat_command, title):
+  def __init__(self, server_command, peer_command, chat_command, title, link_dropbox):
     self.gb = GuiBuilder()
     self.root = Tk()
-    self.initMainWindow(server_command, peer_command, chat_command, title)
+    self.initMainWindow(server_command, peer_command, chat_command, title, link_dropbox)
 
   # Create the main window
-  def initMainWindow(self, server_command, peer_command, chat_command, title):
+  def initMainWindow(self, server_command, peer_command, chat_command, title, link_dropbox):
     # Configure window settings
     self.gb.setTitle(title, self.root)
-    self.gb.setGeometry("400x400", self.root)
+    self.gb.setGeometry("400x475", self.root)
 
     # Command label
     self.gb.createLabel("Command", self.root).pack()
@@ -28,6 +28,7 @@ class MainWindow:
     self.username = StringVar()
     self.username2 = StringVar()
     self.chat_message = StringVar()
+    self.auth_code = StringVar()
 
     # Set initial command values
     self.servecmd.set("Register")
@@ -83,6 +84,20 @@ class MainWindow:
     # General event log box
     self.gb.createLabel("Client Log Messages", self.root).pack()
     self.listbox = self.gb.createLogBox(self.root)
+
+    # Dropbox frame
+    frame3 = self.gb.createFrame(self.root)
+    frame3.pack()
+
+    # Auth code label
+    self.gb.createLabel("Dropbox Auth Code", frame3).pack()
+
+    # Dropbox auth code input
+    self.gb.createInput(self.auth_code, frame3).pack(side = LEFT)
+
+    # Link dropbox button
+    self.gb.createButton("Link Dropbox", lambda: link_dropbox(self.auth_code.get()), frame3).pack(side = RIGHT)
+
 
   # Log messages when events happen
   def log(self, message):
