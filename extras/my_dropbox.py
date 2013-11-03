@@ -65,12 +65,14 @@ class Dropbox:
     self.upload(f, filename)
 
   def upload(self, f, filename):
+    self.client.file_delete(self.username + "/" + filename)
     response = self.client.put_file(self.username + "/" + filename, f.read())
     print("uploaded: \n")
 
   def send_friend_request(self, email):
+    self.share = self.client.share(self.username + "/")
     SUBJECT = 'COSN Friend Request'
-    TEXT = 'You\'re friend, '+ self.username + ', has sent you a friend request. \n\n Follow this link to do something? ' + self.acct['referral_link']
+    TEXT = 'You\'re friend, '+ self.username + ', has sent you a friend request. \n\n Follow this link to accept the shared profile ' + self.share['url']
 
     gmail_sender = 'cosnunr@gmail.com'
     gmail_passwd = 'cosnpassword'
