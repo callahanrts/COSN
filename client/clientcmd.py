@@ -2,7 +2,7 @@
 # These functions are used to preload parameters to commands
 # that will be sent to another client
 ##############################################################
-class ClientCommands:
+class ClientCommands(object):
   def __init__(self, constants):
     self.constants = constants
 

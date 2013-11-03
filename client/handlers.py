@@ -4,28 +4,28 @@ class CommandHandler(object):
     self.servecmd = servecmd
 
   def handle_server_command(self, command, user):
-    if command == "REGISTER":
+    if command == u"REGISTER":
       return self.servecmd.register_user()
 
-    elif command == "QUERY":
+    elif command == u"QUERY":
       return self.servecmd.query_user(user)
 
-    elif command == "LOGOUT":
+    elif command == u"LOGOUT":
       return self.servecmd.logout_user()
 
   def handle_peer_commands(self, command, user, alt_data):
     # Respond to commands
-    if command == "FRIEND":
-      return ("friend", self.clientcmd.befriend_user(self.username))
+    if command == u"FRIEND":
+      return (u"friend", self.clientcmd.befriend_user(self.username))
 
-    elif command == "REQUEST": 
-      return ("profile", self.clientcmd.request_profile(user, self.user["profile"]["info"]["version"]))
+    elif command == u"REQUEST": 
+      return (u"profile", self.clientcmd.request_profile(user, self.user[u"profile"][u"info"][u"version"]))
 
-    elif command == "RELAY": 
-      return ("profile", self.clientcmd.request_profile_relay(alt_data, self.user["profile"]["info"]["version"]))
+    elif command == u"RELAY": 
+      return (u"profile", self.clientcmd.request_profile_relay(alt_data, self.user[u"profile"][u"info"][u"version"]))
 
-    elif command == "GET": 
-      return ("file", self.clientcmd.request_file(alt_data))
+    elif command == u"GET": 
+      return (u"file", self.clientcmd.request_file(alt_data))
 
 
       # Current, single window chat
@@ -34,7 +34,7 @@ class CommandHandler(object):
       # Open connection and get user
       self.chat_conn = socket(AF_INET, SOCK_STREAM)
       user_data = self.send_udp(self.servecmd.query_user(user))
-      self.view.log_message(self.username+": "+message)
+      self.view.log_message(self.username+u": "+message)
 
       try:
         self.chat_conn.connect((user_data[2], int(user_data[3])))
@@ -44,10 +44,10 @@ class CommandHandler(object):
         response = self.retrieve_data() # Get message
         self.view.log(response) 
       except:
-        logging.exception("hm")
+        logging.exception(u"hm")
         self.view.log(self.send_udp(self.clientcmd.user_offline(user_data[4])))
     else:
-      self.view.log("You must be friends with this user before chatting with them")
+      self.view.log(u"You must be friends with this user before chatting with them")
 
 
 

@@ -1,3 +1,4 @@
+from __future__ import with_statement
 from socket import *
 from threading import * 
 from shutil import * 
@@ -5,32 +6,33 @@ import select
 import sys
 import pickle
 import logging
-import queue
+import Queue
 import json
 import os
+from io import open
 
 # Append paths
-sys.path.append('../extras')
-sys.path.append('../server')
-sys.path.append('../client')
+sys.path.append(u'../extras')
+sys.path.append(u'../server')
+sys.path.append(u'../client')
 
 # User Defined
 from client_gui import * 
 from constants import *
 from servercmd import *
 from clientcmd import *
-from my_dropbox import *
+# from my_dropbox import *
 
-class Client:
+class Client(object):
   def __init__(self, host, port, username):
     # Initialize user variables
     self.username = username
     self.host = host
     self.port = int(port)
-    self.server_addr = ("", 9000)
+    self.server_addr = (u"", 9000)
 
     # Dropbox Object
-    self.dropbox = Dropbox(username)
+    # self.dropbox = Dropbox(username)
 
     # Initialize Command Classes
     self.cmd = Command(host, port, self.username)
@@ -62,7 +64,7 @@ class Client:
     self.view.add_input_elements()
     self.view.add_chat_elements(self.chat_command)
     self.view.add_log_box()
-    self.view.add_dropbox_elements(self.link_dropbox)
+    # self.view.add_dropbox_elements(self.link_dropbox)
     self.view.add_request_elements(self.request_friend)
     self.view.add_upload_elements(self.upload_profile)
 
@@ -70,32 +72,32 @@ class Client:
 
   def setup_client_directories(self):
     # Create Directories if they don't exist
-    self.user_directory = "../users/" + self.username + "/" 
+    self.user_directory = u"../users/" + self.username + u"/" 
     self.create_dir_if_not_exists(self.user_directory)
 
-    self.friends_directory = self.user_directory + "friends/"
+    self.friends_directory = self.user_directory + u"friends/"
     self.create_dir_if_not_exists(self.friends_directory)
 
   def retrieve_user_profile(self):
     try:
       # Attempt to retrieve user profile
-      self.user = open(self.user_directory + self.username + ".json")
+      self.user = open(self.user_directory + self.username + u".json")
     except IOError:
       # Generate template user profile or blank
-      copyfile("../extras/profile.json", "../users/" + self.username + "/" + self.username + ".json")
-      self.user = open(self.user_directory + self.username + ".json")
+      copyfile(u"../extras/profile.json", u"../users/" + self.username + u"/" + self.username + u".json")
+      self.user = open(self.user_directory + self.username + u".json")
 
   def create_dir_if_not_exists(self, path):
     if not os.path.exists(path): os.makedirs(path)
 
   def server_command_handler(self, command, user):
-    if command == "REGISTER":
+    if command == u"REGISTER":
       send_message = self.servecmd.register_user()
 
-    elif command == "QUERY":
+    elif command == u"QUERY":
       send_message = self.servecmd.query_user(user)
 
-    elif command == "LOGOUT":
+    elif command == u"LOGOUT":
       send_message = self.servecmd.logout_user()
 
     self.view.log(self.send_udp(send_message))
@@ -113,7 +115,7 @@ class Client:
 
     except timeout:
       # Catch server timeout error
-      self.view.log("Server timed out")
+      self.view.log(u"Server timed out")
 
 
   def peer_command_handler(self, command, user, alt_data):
@@ -124,19 +126,19 @@ class Client:
     self.chat_conn = socket(AF_INET, SOCK_STREAM)
 
     # Respond to commands
-    if command == "FRIEND":
+    if command == u"FRIEND":
       self.friends.append(user)
       send_message = self.clientcmd.befriend_user(self.username)
 
-    elif command == "REQUEST": 
-      send_message = self.clientcmd.request_profile(user, self.user["profile"]["info"]["version"]) # version but not needed yet
+    elif command == u"REQUEST": 
+      send_message = self.clientcmd.request_profile(user, self.user[u"profile"][u"info"][u"version"]) # version but not needed yet
       request_for_profile = True
 
-    elif command == "RELAY": 
-      send_message = self.clientcmd.request_profile_relay(alt_data, self.user["profile"]["info"]["version"]) # version but not needed yet
+    elif command == u"RELAY": 
+      send_message = self.clientcmd.request_profile_relay(alt_data, self.user[u"profile"][u"info"][u"version"]) # version but not needed yet
       request_for_profile = True
 
-    elif command == "GET": 
+    elif command == u"GET": 
       send_message = self.clientcmd.request_file(alt_data)
       request_for_file = True
 
@@ -156,18 +158,18 @@ class Client:
       else:
         self.view.log(response) 
     except: # log errors
-      logging.exception("hm")
+      logging.exception(u"hm")
       self.view.log(self.send_udp(self.clientcmd.user_offline(user_data[4])))
 
     self.chat_conn.close()
 
   def save_file(self, data):
     # Set directory or create if needed
-    directory = "../users/"+self.username+"/friends/files/"
+    directory = u"../users/"+self.username+u"/friends/files/"
     self.create_dir_if_not_exists(directory)
 
     if len(data) > 0:  # Create File
-      f = open(directory+data[1], "wb")
+      f = open(directory+data[1], u"wb")
       f.write(data[3])
       f.close()
     else: 
@@ -189,14 +191,14 @@ class Client:
   def save_profile(self, data):
     if len(data) > 1:
       # Set directory or create if needed
-      directory = "../users/"+self.username+"/friends/"+data[1]+"/"
+      directory = u"../users/"+self.username+u"/friends/"+data[1]+u"/"
       self.create_dir_if_not_exists(directory)
 
       # Parse JSON profile
       json_profile = json.loads(data[3])
 
       # Write to file
-      with open(directory + data[1] + ".json", "w") as outfile:
+      with open(directory + data[1] + u".json", u"w") as outfile:
         json.dump(json_profile, outfile, indent=2)
     
     else:
@@ -208,7 +210,7 @@ class Client:
       # Open connection and get user
       self.chat_conn = socket(AF_INET, SOCK_STREAM)
       user_data = self.send_udp(self.servecmd.query_user(user))
-      self.view.log_message(self.username+": "+message)
+      self.view.log_message(self.username+u": "+message)
 
       try:
         self.chat_conn.connect((user_data[2], int(user_data[3])))
@@ -218,51 +220,51 @@ class Client:
         response = self.retrieve_data() # Get message
         self.view.log(response) 
       except:
-        logging.exception("hm")
+        logging.exception(u"hm")
         self.view.log(self.send_udp(self.clientcmd.user_offline(user_data[4])))
     else:
-      self.view.log("You must be friends with this user before chatting with them")
+      self.view.log(u"You must be friends with this user before chatting with them")
 
   def respond_to(self, message):
     # Switch on the different types of messages or return original if not recognized
-    if message[0] == "FRIEND":
+    if message[0] == u"FRIEND":
       self.friends.append(message[1])       # Add to friends list
       return pickle.dumps(self.cmd.confirm) # Queue message to be returned
 
-    elif message[0] == "CHAT": 
+    elif message[0] == u"CHAT": 
       self.view.username.set(message[2])            
-      self.view.log_message(message[2]+": "+message[1])
+      self.view.log_message(message[2]+u": "+message[1])
       return pickle.dumps(self.clientcmd.delivered_message(message[3])) # Send message
 
-    elif message[0] == "REQUEST":
+    elif message[0] == u"REQUEST":
       send_message = self.clientcmd.profile_message(message[1], message[2], json.dumps(self.user)) 
       return pickle.dumps(send_message)  # Send message
 
-    elif message[0] == "RELAY": 
-      profile_file = self.friends_directory + message[1] + "/" + message[1] + ".json"
+    elif message[0] == u"RELAY": 
+      profile_file = self.friends_directory + message[1] + u"/" + message[1] + u".json"
       try:
         self.user = json.load(open(profile_file)) # Read in user profile
         send_message = self.clientcmd.profile_message(message[1], message[2], json.dumps(self.user))
       except: 
-        send_message = "I don't have the requested profile."
+        send_message = u"I don't have the requested profile."
       return pickle.dumps(send_message) # Send profile
 
-    elif message[0] == "GET": 
+    elif message[0] == u"GET": 
       try: 
         size = os.path.getsize(self.user_directory + message[1])
-        f = open(self.user_directory+message[1], "rb")
-        bytes = f.read()
-        send_message = self.clientcmd.send_file(message[1], size, bytes)
+        f = open(self.user_directory+message[1], u"rb")
+        str = f.read()
+        send_message = self.clientcmd.send_file(message[1], size, str)
       except:
-        send_message = "File does not exist"
+        send_message = u"File does not exist"
       return pickle.dumps(send_message) # Send requested file
 
-    elif message[0] == "PING":
+    elif message[0] == u"PING":
       send_message = self.clientcmd.pong_server(self.username, self.host, self.port)
       return pickle.dumps(send_message) # Send pong back to server
 
     else:
-      print("Command " + str(message[0]) + " not recognized")
+      print u"Command " + unicode(message[0]) + u" not recognized"
       return data
 
   def handle_inputs(self, readable, inputs, outputs, message_queues, tcp_socket):
@@ -271,7 +273,7 @@ class Client:
         connection, client_address = s.accept()    # Accept connection
         connection.setblocking(0)                  # Don't allow socket blocking
         inputs.append(connection)                  # add connection to inputs arr
-        message_queues[connection] = queue.Queue() # Create message queue
+        message_queues[connection] = Queue.Queue() # Create message queue
 
       else:
         data = s.recv(1024)
@@ -284,7 +286,7 @@ class Client:
             outputs.append(s) # Add output channel for response
 
         else: # Interpret empty result as closed connection
-          print("Peer dropped out, closing connection")
+          print u"Peer dropped out, closing connection"
           # Stop listening for input on the connection
           if s in outputs:
             outputs.remove(s)
@@ -297,7 +299,7 @@ class Client:
     for s in writable:
       try:
         next_msg = message_queues[s].get_nowait()
-      except queue.Empty:
+      except Queue.Empty:
         outputs.remove(s) # No messages waiting so stop checking for writability.
       else:
         s.sendall(next_msg)
@@ -331,19 +333,22 @@ class Client:
     tcp_socket.close() # Close tcp connection when server exits
 
   def link_dropbox(self, auth_code):
-    if not auth_code:
-      self.view.log("Copy the following url into your browser to link dropbox")
-      self.view.log(self.dropbox.auth_url())
-    else:
-      print(self.dropbox.get_token(auth_code))
+    temp = None
+  #   if not auth_code:
+  #     self.view.log(u"Copy the following url into your browser to link dropbox")
+  #     self.view.log(self.dropbox.auth_url())
+  #   else:
+  #     print self.dropbox.get_token(auth_code)
 
   def upload_profile(self):
-    self.dropbox.upload_profile()
+    tmp = None
+  #   self.dropbox.upload_profile()
 
   def request_friend(self, email):
-    self.dropbox.send_friend_request(email)
+    request = None
+  #   self.dropbox.send_friend_request(email)
 
-if __name__ == '__main__':
+if __name__ == u'__main__':
   client = Client(sys.argv[1], sys.argv[2], sys.argv[3])
 
 
