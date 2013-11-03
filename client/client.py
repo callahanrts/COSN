@@ -21,7 +21,7 @@ from client_gui import *
 from constants import *
 from servercmd import *
 from clientcmd import *
-# from my_dropbox import *
+from drive import *
 
 class Client(object):
   def __init__(self, host, port, username):
@@ -31,8 +31,9 @@ class Client(object):
     self.port = int(port)
     self.server_addr = (u"", 9000)
 
-    # Dropbox Object
-    # self.dropbox = Dropbox(username)
+    # Drive Object and authorize user
+    self.drive = Drive(username)
+    self.drive.authorize()
 
     # Initialize Command Classes
     self.cmd = Command(host, port, self.username)
