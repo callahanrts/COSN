@@ -2,7 +2,7 @@
 # These are commands for the client to construct 
 # and send to the server
 #################################################
-class ServerCommands:
+class ServerCommands(object):
   def __init__(self, constants):
     self.constants = constants
 

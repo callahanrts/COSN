@@ -1,15 +1,15 @@
 from tkinter import * 
 from socket import *
 
-class ServerGui:
+class ServerGui(object):
   def __init__(self, ping_command):
     # Initialize basic window properties
     self.root = Tk()
-    self.setTitle("Server")
-    self.setGeometry("400x420")
+    self.setTitle(u"Server")
+    self.setGeometry(u"400x420")
 
     # Add server gui elements
-    self.initServerLabel("Server Log Messages")
+    self.initServerLabel(u"Server Log Messages")
     self.initListBox()
     frame = Frame(self.root)
     frame.pack()

@@ -9,19 +9,19 @@ import server_gui
 from server_functions import *
 
 
-class Server:
+class Server(object):
   def __init__(self):
     #Connect to server and print message 
     self.server_socket = socket(AF_INET, SOCK_DGRAM)  
-    self.server_socket.bind(('', 9000))
-    print("(9000) UDP Server Waiting for client...")
+    self.server_socket.bind((u'', 9000))
+    print u"(9000) UDP Server Waiting for client..."
 
     # Connect to sqlite database and print success message
-    self.conn = sqlite3.connect('server/cosn.db')
-    print("Opened database successfully")
+    self.conn = sqlite3.connect(u'server/cosn.db')
+    print u"Opened database successfully"
 
     # Delete records of online users
-    self.conn.execute("DELETE FROM online_users")
+    self.conn.execute(u"DELETE FROM online_users")
     self.conn.commit()
 
     # Start UDP listener thread
@@ -54,30 +54,30 @@ class Server:
 
   def reply_to_command(self, command, request):
     # Connect to sqlite database (must be done in each thread)
-    self.conn = sqlite3.connect('server/cosn.db')
+    self.conn = sqlite3.connect(u'server/cosn.db')
 
-    if command == "REGISTER":
+    if command == u"REGISTER":
       return register_user(request, self.conn)
 
-    elif command == "QUERY":
+    elif command == u"QUERY":
       return query_user(request, self.conn)
 
-    elif command == "LOGOUT":
+    elif command == u"LOGOUT":
       return logout_user(request[1], self.conn)
 
-    elif command == "DOWN": 
+    elif command == u"DOWN": 
       if not self.ping_user(request[1]):
         return down_user(request[1], self.conn)
       else:
-        return "User is busy"
+        return u"User is busy"
 
     else:
-      self.view.log("Invalid data from client: " + command)
+      self.view.log(u"Invalid data from client: " + command)
 
   # Ping user upon another users request
   def ping_user(self, username):
     # Get user data and the command to send to user
-    user_data = query_user(["", username], self.conn)
+    user_data = query_user([u"", username], self.conn)
     send_message = ping_command(user_data)
 
     # Create tcp socket to send ping to client
@@ -96,8 +96,8 @@ class Server:
     except: 
       # Remove user from online table if no repsonse is received and log message
       down_user(username, self.conn)
-      self.view.log("User is offline")
+      self.view.log(u"User is offline")
       return False
 
-if __name__ == '__main__':
+if __name__ == u'__main__':
   server = Server()

@@ -1,6 +1,6 @@
-from tkinter import *
+from Tkinter import *
 
-class GuiBuilder:
+class GuiBuilder(object):
   def __init__(self):
     tmp = None
 
