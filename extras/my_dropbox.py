@@ -3,6 +3,7 @@ import dropbox
 import sqlite3
 import pickle
 import json
+import smtplib
 
 class Dropbox:
   def __init__(self, username):
@@ -43,7 +44,9 @@ class Dropbox:
   def set_client(self):
     self.client = dropbox.client.DropboxClient(self.token) 
     self.acct = self.client.account_info()
+    print(self.acct)
 
+  # Set token if it's stored inthe database. otherwise return a blank string
   def has_token(self):
     cursor = self.conn.execute("SELECT * FROM dropbox WHERE username = ? LIMIT 1", [self.username])
     token = ''
@@ -65,21 +68,25 @@ class Dropbox:
     response = self.client.put_file(self.username + "/" + filename, f.read())
     print("uploaded: \n")
 
-# # This will fail if the user enters an invalid authorization code
-# access_token, user_id = flow.finish(code)
+  def send_friend_request(self, email):
+    SUBJECT = 'COSN Friend Request'
+    TEXT = 'You\'re friend, '+ self.username + ', has sent you a friend request. \n\n Follow this link to do something? ' + self.acct['referral_link']
 
-# client = dropbox.client.DropboxClient(access_token)
-# print 'linked account: ', client.account_info()
+    gmail_sender = 'cosnunr@gmail.com'
+    gmail_passwd = 'cosnpassword'
 
-# f = open('working-draft.txt')
-# response = client.put_file('/magnum-opus.txt', f)
-# print 'uploaded: ', response
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.ehlo()
+    server.starttls()
+    server.login(gmail_sender, gmail_passwd)
 
-# folder_metadata = client.metadata('/')
-# print 'metadata: ', folder_metadata
+    BODY = '\r\n'.join(['To: %s' % email, 'From: %s' % gmail_sender, 'Subject: %s' % SUBJECT, '', TEXT])
 
-# f, metadata = client.get_file_and_metadata('/magnum-opus.txt')
-# out = open('magnum-opus.txt', 'w')
-# out.write(f.read())
-# out.close()
-# print metadata
+    try:
+      server.sendmail(gmail_sender, [email], BODY)
+      print ('email sent')
+    except:
+      print ('error sending mail')
+
+    server.quit()
+

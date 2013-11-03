@@ -8,16 +8,16 @@ sys.path.append('../extras')
 from gui_builder import * 
 
 class MainWindow:
-  def __init__(self, server_command, peer_command, chat_command, title, link_dropbox, upload_profile):
+  def __init__(self, title):
     self.gb = GuiBuilder()
     self.root = Tk()
-    self.initMainWindow(server_command, peer_command, chat_command, title, link_dropbox, upload_profile)
+    self.initMainWindow(title)
 
   # Create the main window
-  def initMainWindow(self, server_command, peer_command, chat_command, title, link_dropbox, upload_profile):
+  def initMainWindow(self, title):
     # Configure window settings
     self.gb.setTitle(title, self.root)
-    self.gb.setGeometry("400x500", self.root)
+    self.gb.setGeometry("400x525", self.root)
 
     # Command label
     self.gb.createLabel("Command", self.root).pack()
@@ -29,11 +29,13 @@ class MainWindow:
     self.username2 = StringVar()
     self.chat_message = StringVar()
     self.auth_code = StringVar()
+    self.email = StringVar()
 
     # Set initial command values
     self.servecmd.set("Register")
     self.peercmd.set("Friend")
 
+  def add_command_elements(self, server_command, peer_command):
     # Create frame for command menu buttons
     frame = self.gb.createFrame(self.root)
     frame.pack()
@@ -46,58 +48,77 @@ class MainWindow:
     self.gb.createMenuButton(self.peercmd, ["Friend", "Request", "Relay", "Get"], frame).grid(row=1, column=0)# Took Chat command out
     self.gb.createButton("Send (client)", lambda: peer_command(self.peercmd.get().upper(), self.username.get(), self.username2.get()), frame).grid(row=1, column=1)    
 
+  def add_input_elements(self):
     # Create frame for chat input and send button
-    input_frame = self.gb.createFrame(self.root)
-    input_frame.pack()
+    frame = self.gb.createFrame(self.root)
+    frame.pack()
 
     # First username label 
-    user1 = self.gb.createLabel("Username 1", input_frame)
+    user1 = self.gb.createLabel("Username 1", frame)
     user1.grid(row=0, column=0)
     user1.config(width=10)
     
     # Create input for first username
-    self.gb.createInput(self.username, input_frame).grid(row=0, column=1)
+    self.gb.createInput(self.username, frame).grid(row=0, column=1)
 
     # Second username label
-    user2 = self.gb.createLabel("Username 2", input_frame)
+    user2 = self.gb.createLabel("Username 2", frame)
     user2.grid(row=1, column=0)
     user2.config(width=10)
 
     # Create input for second username
-    self.gb.createInput(self.username2, input_frame).grid(row=1, column=1)
+    self.gb.createInput(self.username2, frame).grid(row=1, column=1)
 
+  def add_chat_elements(self, chat_command):
     # Chat message label
     self.gb.createLabel("Chat Message, if neccessary (requires username)", self.root).pack()
 
     # Create frame for chat messaging input and label
-    frame2 = self.gb.createFrame(self.root)
-    frame2.pack()
+    frame = self.gb.createFrame(self.root)
+    frame.pack()
 
     # Chat input and send button
-    self.gb.createInput(self.chat_message, frame2).pack(side=LEFT)
-    self.gb.createButton("Send Message", lambda: chat_command(self.chat_message.get(), self.username.get()), frame2).pack(side=RIGHT)    
+    self.gb.createInput(self.chat_message, frame).pack(side=LEFT)
+    self.gb.createButton("Send Message", lambda: chat_command(self.chat_message.get(), self.username.get()), frame).pack(side=RIGHT)    
 
     # Chat messages log box
     self.gb.createLabel("Chat Messages", self.root).pack()
     self.chatbox = self.gb.createLogBox(self.root)
 
+  def add_log_box(self):
     # General event log box
     self.gb.createLabel("Client Log Messages", self.root).pack()
     self.listbox = self.gb.createLogBox(self.root)
 
+  def add_dropbox_elements(self, link_dropbox):
     # Dropbox frame
-    frame3 = self.gb.createFrame(self.root)
-    frame3.pack()
+    frame = self.gb.createFrame(self.root)
+    frame.pack()
 
     # Auth code label
-    self.gb.createLabel("Dropbox Auth Code", frame3).pack()
+    self.gb.createLabel("Dropbox Auth Code", frame).pack()
 
     # Dropbox auth code input
-    self.gb.createInput(self.auth_code, frame3).pack(side = LEFT)
+    self.gb.createInput(self.auth_code, frame).pack(side = LEFT)
 
     # Link dropbox button
-    self.gb.createButton("Link Dropbox", lambda: link_dropbox(self.auth_code.get()), frame3).pack(side = RIGHT)
+    self.gb.createButton("Link Dropbox", lambda: link_dropbox(self.auth_code.get()), frame).pack(side = RIGHT)
 
+  def add_request_elements(self, request_friend):
+    # Dropbox frame
+    frame = self.gb.createFrame(self.root)
+    frame.pack()
+
+    # Auth code label
+    self.gb.createLabel("Friends email address", frame).pack()
+
+    # Dropbox auth code input
+    self.gb.createInput(self.email, frame).pack(side = LEFT)
+
+    # Link dropbox button
+    self.gb.createButton("Request Friend", lambda: request_friend(self.email.get()), frame).pack(side = RIGHT)
+
+  def add_upload_elements(self, upload_profile):
     self.gb.createButton("Update Profile", lambda: upload_profile(), self.root).pack()
 
   # Log messages when events happen

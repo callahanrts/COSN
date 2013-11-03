@@ -57,7 +57,15 @@ class Client:
     listener.start()
 
     # Create GUI
-    self.view = MainWindow(self.server_command_handler, self.peer_command_handler, self.chat_command, self.username, self.link_dropbox, self.upload_profile)
+    self.view = MainWindow(self.username)
+    self.view.add_command_elements(self.server_command_handler, self.peer_command_handler)
+    self.view.add_input_elements()
+    self.view.add_chat_elements(self.chat_command)
+    self.view.add_log_box()
+    self.view.add_dropbox_elements(self.link_dropbox)
+    self.view.add_request_elements(self.request_friend)
+    self.view.add_upload_elements(self.upload_profile)
+
     self.view.start()
 
   def setup_client_directories(self):
@@ -331,6 +339,9 @@ class Client:
 
   def upload_profile(self):
     self.dropbox.upload_profile()
+
+  def request_friend(self, email):
+    self.dropbox.send_friend_request(email)
 
 if __name__ == '__main__':
   client = Client(sys.argv[1], sys.argv[2], sys.argv[3])
