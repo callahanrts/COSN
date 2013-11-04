@@ -67,7 +67,7 @@ class Drive:
         self.credentials = pickle.loads(row[1])
 
   def upload_profile(self):
-    title = "COSN Profile"
+    title = "cosn_profile"
     description = "JSON Profile"
     filename = "../users/" + self.username + "/" + self.username + ".json"
     self.insert_file(title, description, filename)
