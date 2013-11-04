@@ -35,8 +35,8 @@ class Drive:
     self.conn = sqlite3.connect(u'../server/cosn.db')
 
   def authorize(self):
-    self.has_credentials()
-    if self.credentials == None:
+    self.get_user()
+    if self.user == None:
       # Run through the OAuth flow and retrieve credentials
       self.flow = OAuth2WebServerFlow(self.CLIENT_ID, self.CLIENT_SECRET, self.OAUTH_SCOPE, self.REDIRECT_URI)
       self.authorize_url = self.flow.step1_get_authorize_url()
@@ -45,9 +45,11 @@ class Drive:
       print 'Go to the following link in your browser: ' + self.authorize_url
       code = raw_input('Enter verification code: ').strip()
       self.credentials = self.flow.step2_exchange(code)
+      self.user = [self.username, self.credentials, None]
 
-    # Store credentials when you get them
-    self.store_credentials()
+    else:
+      # Get credentials out of user opbject
+      self.credentials = pickle.loads(self.user[1])
 
     # Create an httplib2.Http object and authorize it with our credentials
     self.http = httplib2.Http()
@@ -55,22 +57,62 @@ class Drive:
 
     self.drive_service = build('drive', 'v2', http=self.http)
 
+    # Store credentials when you get them
+    self.store_credentials()
+
+    # Insert file to drive if we don't have a record of it
+    self.upload_profile()
+
   def store_credentials(self):
-    self.conn.execute(u"INSERT INTO drive(username, credentials) VALUES(?, ?)", [self.username, pickle.dumps(self.credentials)]) 
+    self.conn.execute(u"INSERT INTO drive(username, credentials, profile) VALUES(?, ?, ?)", [self.username, pickle.dumps(self.credentials), None]) 
     self.conn.commit()
 
-  def has_credentials(self):
-    self.credentials = None
+  def get_user(self):
+    self.user = None
     cursor = self.conn.execute(u"SELECT * FROM drive WHERE username = ? LIMIT 1", [self.username])
     for row in cursor:
       if row[0]:
-        self.credentials = pickle.loads(row[1])
+        self.user = row
+
+  # Args:
+  #   service: Drive API service instance.
+  #   file_id: ID of the file to insert permission for.
+  #   value: User or group e-mail address, domain name or None for 'default'
+  #          type.
+  #   perm_type: The value 'user', 'group', 'domain' or 'default'.
+  #   role: The value 'owner', 'writer' or 'reader'.
+  # Returns:
+  #   The inserted permission if successful, None otherwise.
+  def give_permission(self, email):
+    file_id = None # Get file id from drive
+    new_permission = {
+      'value': email,
+      'type': 'user',
+      'role': 'reader'
+    }
+    try:
+      return self.drive_service.permissions().insert(fileId=file_id, body=new_permission).execute()
+    except errors.HttpError, error:
+      print 'An error occurred: %s' % error
+    return None
+
 
   def upload_profile(self):
-    title = "cosn_profile"
-    description = "JSON Profile"
+    # Upload profile to google drive
     filename = "../users/" + self.username + "/" + self.username + ".json"
-    self.insert_file(title, description, filename)
+    
+    if self.user[2] == None:
+      self.profile = self.insert_file("cosn_profile", "JSON Profile", filename)
+    else:
+      print self.user[2]
+      self.profile = self.update_file(self.user[2], "cosn_profile", "JSON Profile", filename)
+
+    # Update user to store profile
+    self.get_user()
+
+    # Save profile for later
+    self.conn.execute(u"UPDATE drive SET profile = ? WHERE username = ?", [pickle.dumps(self.profile), self.username]) 
+    self.conn.commit()
 
   # Insert new file.
   # Args:
@@ -104,5 +146,43 @@ class Drive:
     except errors.HttpError, error:
       print 'An error occured: %s' % error
       return None
+
+  # Update an existing file's metadata and content.
+
+  # Args:
+  #   service: Drive API service instance.
+  #   file_id: ID of the file to update.
+  #   new_title: New title for the file.
+  #   new_description: New description for the file.
+  #   new_mime_type: New MIME type for the file.
+  #   new_filename: Filename of the new content to upload.
+  #   new_revision: Whether or not to create a new revision for this file.
+  # Returns:
+  #   Updated file metadata if successful, None otherwise.
+  def update_file(self, file_id, new_title, new_description, new_filename):  
+    mime_type = mimetypes.guess_type(new_filename)
+    try:
+      # First retrieve the file from the API.
+      file = self.drive_service.files().get(fileId=file_id).execute()
+
+      # File's new metadata.
+      file['title'] = new_title
+      file['description'] = new_description
+      file['mimeType'] = new_mime_type
+
+      # File's new content.
+      media_body = MediaFileUpload(
+        new_filename, mimetype=new_mime_type, resumable=True)
+
+      # Send the request to the API.
+      updated_file = self.drive_service.files().update(
+        fileId=file_id,
+        body=file,
+        newRevision=True,
+        media_body=media_body).execute()
+      return updated_file
+    except errors.HttpError, error:
+      print 'An error occurred: %s' % error
+      return None      
 
 

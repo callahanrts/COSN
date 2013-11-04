@@ -31,10 +31,6 @@ class Client(object):
     self.port = int(port)
     self.server_addr = (u"", 9000)
 
-    # Drive Object and authorize user
-    self.drive = Drive(username)
-    self.drive.authorize()
-
     # Initialize Command Classes
     self.cmd = Command(host, port, self.username)
     self.servecmd = ServerCommands(self.cmd)
@@ -68,6 +64,10 @@ class Client(object):
     self.view.add_drive_elements(self.link_dropbox)
     self.view.add_request_elements(self.request_friend)
     self.view.add_upload_elements(self.upload_profile)
+
+    # Drive Object and authorize user
+    self.drive = Drive(username)
+    self.drive.authorize()
 
     self.view.start()
 
@@ -342,12 +342,10 @@ class Client(object):
   #     print self.dropbox.get_token(auth_code)
 
   def upload_profile(self):
-    tmp = None
     self.drive.upload_profile()
 
   def request_friend(self, email):
-    request = None
-  #   self.dropbox.send_friend_request(email)
+    self.drive.give_permission(email)
 
 if __name__ == u'__main__':
   client = Client(sys.argv[1], sys.argv[2], sys.argv[3])

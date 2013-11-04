@@ -116,7 +116,7 @@ class MainWindow(object):
     self.gb.createInput(self.email, frame).pack(side = LEFT)
 
     # Link dropbox button
-    self.gb.createButton(u"Request Friend", lambda: request_friend(self.email.get()), frame).pack(side = RIGHT)
+    self.gb.createButton(u"Give Permission", lambda: request_friend(self.email.get()), frame).pack(side = RIGHT)
 
   def add_upload_elements(self, upload_profile):
     self.gb.createButton(u"Update Profile", lambda: upload_profile(), self.root).pack()
