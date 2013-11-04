@@ -90,19 +90,19 @@ class MainWindow(object):
     self.gb.createLabel(u"Client Log Messages", self.root).pack()
     self.listbox = self.gb.createLogBox(self.root)
 
-  def add_dropbox_elements(self, link_dropbox):
+  def add_drive_elements(self, link_dropbox):
     # Dropbox frame
     frame = self.gb.createFrame(self.root)
     frame.pack()
 
     # Auth code label
-    self.gb.createLabel(u"Dropbox Auth Code", frame).pack()
+    self.gb.createLabel(u"Google Drive Auth Code", frame).pack()
 
-    # Dropbox auth code input
+    # Google Drive auth code input
     self.gb.createInput(self.auth_code, frame).pack(side = LEFT)
 
-    # Link dropbox button
-    self.gb.createButton(u"Link Dropbox", lambda: link_dropbox(self.auth_code.get()), frame).pack(side = RIGHT)
+    # Link google drive button
+    self.gb.createButton(u"Link Account", lambda: link_dropbox(self.auth_code.get()), frame).pack(side = RIGHT)
 
   def add_request_elements(self, request_friend):
     # Dropbox frame

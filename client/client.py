@@ -65,7 +65,7 @@ class Client(object):
     self.view.add_input_elements()
     self.view.add_chat_elements(self.chat_command)
     self.view.add_log_box()
-    # self.view.add_dropbox_elements(self.link_dropbox)
+    self.view.add_drive_elements(self.link_dropbox)
     self.view.add_request_elements(self.request_friend)
     self.view.add_upload_elements(self.upload_profile)
 
@@ -343,7 +343,7 @@ class Client(object):
 
   def upload_profile(self):
     tmp = None
-  #   self.dropbox.upload_profile()
+    self.drive.upload_profile()
 
   def request_friend(self, email):
     request = None
