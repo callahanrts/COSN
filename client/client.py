@@ -21,7 +21,7 @@ from client_gui import *
 from constants import *
 from servercmd import *
 from clientcmd import *
-from drive import *
+from my_dropbox import * 
 
 class Client(object):
   def __init__(self, host, port, username):
@@ -65,8 +65,8 @@ class Client(object):
     self.view.add_request_elements(self.request_friend)
     self.view.add_upload_elements(self.upload_profile)
 
-    # Drive Object and authorize user
-    self.drive = Drive(username)
+    # Dropbox Object
+    self.dropbox = Dropbox(username)
 
     self.view.start()
 
@@ -333,18 +333,18 @@ class Client(object):
     tcp_socket.close() # Close tcp connection when server exits
 
   def link_dropbox(self, auth_code):
-    temp = None
-  #   if not auth_code:
-  #     self.view.log(u"Copy the following url into your browser to link dropbox")
-  #     self.view.log(self.dropbox.auth_url())
-  #   else:
-  #     print self.dropbox.get_token(auth_code)
+    if not auth_code:
+      self.view.log("Copy the following url into your browser to link dropbox")
+      self.view.log(self.dropbox.auth_url())
+    else:
+      print(self.dropbox.get_token(auth_code))
 
   def upload_profile(self):
-    self.drive.upload_profile()
+    self.dropbox.upload_profile()
 
   def request_friend(self, email):
-    self.drive.give_permission(email)
+    self.dropbox.send_friend_request(email)
+
 
 if __name__ == u'__main__':
   client = Client(sys.argv[1], sys.argv[2], sys.argv[3])
