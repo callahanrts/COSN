@@ -67,7 +67,6 @@ class Client(object):
 
     # Drive Object and authorize user
     self.drive = Drive(username)
-    self.drive.authorize()
 
     self.view.start()
 

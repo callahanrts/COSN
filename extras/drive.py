@@ -6,50 +6,32 @@ import pprint
 import mimetypes
 
 from apiclient.discovery import build
-from apiclient.http import MediaFileUpload
+from apiclient.http      import MediaFileUpload
 from oauth2client.client import OAuth2WebServerFlow
-from apiclient import errors
+from apiclient           import errors
 
 class Drive:
   def __init__(self, username):    
-    # Store user's username
-    self.username = username
+    mimetypes.init()                                      # Initialize mimetypes object
+    self.username = username                              # Store user's username
+    self.conn     = sqlite3.connect(u'../server/cosn.db') # Connect to sqlite database and print success message
 
-    # Initialize mimetypes object
-    mimetypes.init()
-
-    # Copy your credentials from the console
-    self.CLIENT_ID = '346355476366-p65ou25kvsihb4tnpu7ctgmsrnp55psg.apps.googleusercontent.com'
+    # Set google variables
+    self.CLIENT_ID     = '346355476366-p65ou25kvsihb4tnpu7ctgmsrnp55psg.apps.googleusercontent.com'
     self.CLIENT_SECRET = 'zdB0Sn8zL1jRztIuR8Iq2SVQ'
+    self.OAUTH_SCOPE   = 'https://www.googleapis.com/auth/drive'
+    self.REDIRECT_URI  = 'urn:ietf:wg:oauth:2.0:oob'   
 
-    # Check https://developers.google.com/drive/scopes for all available scopes
-    self.OAUTH_SCOPE = 'https://www.googleapis.com/auth/drive'
-
-    # Redirect URI for installed apps
-    self.REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
-
-    # Path to the file to upload
-    FILENAME = 'document.txt'
-
-    # Connect to sqlite database and print success message
-    self.conn = sqlite3.connect(u'../server/cosn.db')
+    self.authorize()      # Start command line authorization
+    self.upload_profile() # Insert file to drive if we don't have a record of it
 
   def authorize(self):
     self.get_user()
-    if self.user == None:
-      # Run through the OAuth flow and retrieve credentials
-      self.flow = OAuth2WebServerFlow(self.CLIENT_ID, self.CLIENT_SECRET, self.OAUTH_SCOPE, self.REDIRECT_URI)
-      self.authorize_url = self.flow.step1_get_authorize_url()
-
-      print 'To use this app, you must first connect it to a dropbox account'
-      print 'Go to the following link in your browser: ' + self.authorize_url
-      code = raw_input('Enter verification code: ').strip()
-      self.credentials = self.flow.step2_exchange(code)
-      self.user = [self.username, self.credentials, None]
-
-    else:
-      # Get credentials out of user opbject
-      self.credentials = pickle.loads(self.user[1])
+    if self.user == None: 
+      self.user = self.get_user_credentials()       # Get credentials from google
+      self.store_credentials()                      # Store credentials when you get them
+    else: 
+      self.credentials = pickle.loads(self.user[1]) # Get credentials out of user object
 
     # Create an httplib2.Http object and authorize it with our credentials
     self.http = httplib2.Http()
@@ -57,15 +39,22 @@ class Drive:
 
     self.drive_service = build('drive', 'v2', http=self.http)
 
-    # Store credentials when you get them
-    self.store_credentials()
+  def get_user_credentials(self):
+    # Run through the OAuth flow and retrieve credentials
+    self.flow = OAuth2WebServerFlow(self.CLIENT_ID, self.CLIENT_SECRET, self.OAUTH_SCOPE, self.REDIRECT_URI)
+    self.authorize_url = self.flow.step1_get_authorize_url()
 
-    # Insert file to drive if we don't have a record of it
-    self.upload_profile()
+    print 'To use this app, you must first connect it to a dropbox account'
+    print 'Go to the following link in your browser: ' + self.authorize_url
+    code = raw_input('Enter verification code: ').strip()
+    self.credentials = self.flow.step2_exchange(code)
+    return [self.username, self.credentials, None]
 
   def store_credentials(self):
-    self.conn.execute(u"INSERT INTO drive(username, credentials, profile) VALUES(?, ?, ?)", [self.username, pickle.dumps(self.credentials), None]) 
-    self.conn.commit()
+    self.get_user()
+    if self.user == None:
+      self.conn.execute(u"INSERT INTO drive(username, credentials, profile) VALUES(?, ?, ?)", [self.username, pickle.dumps(self.credentials), None]) 
+      self.conn.commit()
 
   def get_user(self):
     self.user = None
@@ -137,11 +126,9 @@ class Drive:
     #if parent_id:
     #  body['parents'] = [{'id': parent_id}]
     try:
-      print self.drive_service
-      file = self.drive_service.files().insert(body=body, media_body=media_body).execute()
-      # Uncomment the following line to print the File ID
-      # print 'File ID: %s' % file['id']
-      return file
+      up_file = self.drive_service.files().insert(body=body, media_body=media_body).execute()
+      print up_file["downloadUrl"]
+      return up_file
 
     except errors.HttpError, error:
       print 'An error occured: %s' % error
