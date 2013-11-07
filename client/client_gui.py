@@ -8,13 +8,13 @@ sys.path.append(u'../extras')
 from gui_builder import * 
 
 class MainWindow(object):
-  def __init__(self, title):
+  def __init__(self, title, shutdown):
     self.gb = GuiBuilder()
     self.root = Tk()
-    self.initMainWindow(title)
+    self.initMainWindow(title, shutdown)
 
   # Create the main window
-  def initMainWindow(self, title):
+  def initMainWindow(self, title, shutdown):
     # Configure window settings
     self.gb.setTitle(title, self.root)
     self.gb.setGeometry(u"400x525", self.root)
@@ -23,17 +23,20 @@ class MainWindow(object):
     self.gb.createLabel(u"Command", self.root).pack()
 
     # Create needed gui variables 
-    self.servecmd = StringVar()
-    self.peercmd = StringVar()
-    self.username = StringVar()
-    self.username2 = StringVar()
+    self.servecmd     = StringVar()
+    self.peercmd      = StringVar()
+    self.username     = StringVar()
+    self.username2    = StringVar()
     self.chat_message = StringVar()
-    self.auth_code = StringVar()
-    self.email = StringVar()
+    self.auth_code    = StringVar()
+    self.email        = StringVar()
 
     # Set initial command values
     self.servecmd.set(u"Register")
     self.peercmd.set(u"Friend")
+
+    # Shutdown method
+    self.root.protocol("WM_DELETE_WINDOW", lambda: shutdown(self.root))
 
   def add_command_elements(self, server_command, peer_command):
     # Create frame for command menu buttons

@@ -30,6 +30,7 @@ class Client(object):
     self.host = host
     self.port = int(port)
     self.server_addr = (u"", 9000)
+    self.stop_thread = False
 
     # Initialize Command Classes
     self.cmd = Command(host, port, self.username)
@@ -56,7 +57,7 @@ class Client(object):
     listener.start()
 
     # Create GUI
-    self.view = MainWindow(self.username)
+    self.view = MainWindow(self.username, self.shutdown)
     self.view.add_command_elements(self.server_command_handler, self.peer_command_handler)
     self.view.add_input_elements()
     self.view.add_chat_elements(self.chat_command)
@@ -323,14 +324,20 @@ class Client(object):
     outputs = [ ]            # Sockets to which we expect to write
     message_queues = {}      # Outgoing message queues (socket:Queue)
 
-    while inputs:
+    while not self.stop_thread:
       # Wait for at least one of the sockets to be ready for processing
-      readable, writable, exceptional = select.select(inputs, outputs, inputs)
+      readable, writable, exceptional = select.select(inputs, outputs, inputs, 3)
+      if len(readable) + len(writable) + len(exceptional) is 0: 
+        continue
       self.handle_inputs(readable, inputs, outputs, message_queues, tcp_socket) # Handle inputs  
       self.handle_outputs(writable, outputs, message_queues)                    # Handle outputes
       self.handle_exceptionals(exceptional, inputs, outputs, message_queues)    # Handle "exceptional conditions"
- 
+
     tcp_socket.close() # Close tcp connection when server exits
+
+  def shutdown(self, window):
+    self.stop_thread = True
+    window.destroy()
 
   def link_dropbox(self, auth_code):
     if not auth_code:
