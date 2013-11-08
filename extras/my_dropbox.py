@@ -19,11 +19,16 @@ class Dropbox(object):
 
     self.flow = dropbox.client.DropboxOAuth2FlowNoRedirect(self.app_key, self.app_secret)
 
-    self.conn = sqlite3.connect(u'../server/cosn.db')  # Connect to sqlite database and print success message
-    self.username = username                           # Set local username
-    self.token = self.has_token()                      # Set token if exists
-    if not self.token == u'': self.set_client()        # Set client and account information 
-    self.upload_file("location.json")
+    self.conn = sqlite3.connect(u'../server/cosn.db')   # Connect to sqlite database and print success message
+    self.username = username                            # Set local username
+    self.token = self.has_token()                       # Set token if exists
+    if not self.token == u'': self.set_client()         # Set client and account information 
+    self.upload_file("profile.json")                    # Upload user profile
+
+    # Set location variables
+    self.location["links"]["public"] = self.client.share(self.username + u"/profile.json")
+    self.save_user_file("location.json", self.location) # Save location to file
+    self.upload_file("location.json")                   # Upload location
 
   def auth_url(self):
     return self.flow.start()
@@ -63,6 +68,11 @@ class Dropbox(object):
       dont_care = True
     response = self.client.put_file(self.username + u"/" + filename, f.read())
     print u"uploaded: \n"
+
+  def save_user_file(self, filename, json_obj):
+    filepath = self.user_path + filename
+    with open(filepath, 'wb') as outfile:
+      json.dump(json_obj, outfile, indent=2, sort_keys=True)
 
   def send_friend_request(self, email):
     self.share = self.client.share(self.username + u"/")

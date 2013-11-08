@@ -49,10 +49,10 @@ class Client(object):
     # Create user profile from template if it doesn't exist
     self.location = self.load_user_file("location.json")
     self.user = self.load_user_file("profile.json")
-    self.location["address"]["ID"] = self.username
+    self.location["address"]["ID"] = self.username  
     self.location["address"]["IP"] = self.host
     self.location["address"]["port"] = self.port
-
+    
     # Create GUI
     self.view = MainWindow(self.username, self.shutdown)
     self.view.add_command_elements(self.server_command_handler, self.peer_command_handler)
