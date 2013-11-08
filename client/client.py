@@ -52,7 +52,7 @@ class Client(object):
     self.location["address"]["ID"] = self.username  
     self.location["address"]["IP"] = self.host
     self.location["address"]["port"] = self.port
-    
+
     # Create GUI
     self.view = MainWindow(self.username, self.shutdown)
     self.view.add_command_elements(self.server_command_handler, self.peer_command_handler)
@@ -88,6 +88,11 @@ class Client(object):
       copyfile(u"../extras/" + filename, filepath)
       user_file = open(filepath)
     return json.load(user_file)
+
+  def save_user_file(self, filename, json_obj):
+    filepath = self.user_directory + filename
+    with open(filepath, 'wb') as outfile:
+      json.dump(json_obj, outfile, indent=2, sort_keys=True)
 
   def create_dir_if_not_exists(self, path):
     if not os.path.exists(path): os.makedirs(path)
@@ -337,8 +342,13 @@ class Client(object):
     tcp_socket.close() # Close tcp connection when server exits
 
   def shutdown(self, window):
-    self.stop_thread = True
     window.destroy()
+    self.stop_thread = True
+    self.location = self.load_user_file("location.json")
+    self.location["address"]["IP"] = "0.0.0.0"
+    self.location["address"]["port"] = 0
+    self.save_user_file("location.json", self.location)
+    self.dropbox.upload_file("location.json")
 
   def link_dropbox(self, auth_code):
     if not auth_code:

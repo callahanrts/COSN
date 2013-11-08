@@ -57,7 +57,6 @@ class Dropbox(object):
     return u''
 
   def upload_file(self, filename):
-    print self.user_path + filename
     f = open(self.user_path + filename)
     self.upload(f, filename)
 
