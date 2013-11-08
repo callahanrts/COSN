@@ -47,8 +47,11 @@ class Client(object):
     self.setup_client_directories()
 
     # Create user profile from template if it doesn't exist
-    self.user = json.load(self.load_user_file("profile.json"))
     self.location = json.load(self.load_user_file("location.json"))
+    self.user = json.load(self.load_user_file("profile.json"))
+    self.location["address"]["ID"] = self.username
+    self.location["address"]["IP"] = self.host
+    self.location["address"]["port"] = self.port
 
     # Create GUI
     self.view = MainWindow(self.username, self.shutdown)

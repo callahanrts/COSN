@@ -39,7 +39,6 @@ class Dropbox(object):
   def set_client(self):
     self.client = dropbox.client.DropboxClient(self.token) 
     self.acct = self.client.account_info()
-    print self.acct
 
   # Set token if it's stored inthe database. otherwise return a blank string
   def has_token(self):
