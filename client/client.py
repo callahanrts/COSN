@@ -47,14 +47,8 @@ class Client(object):
     self.setup_client_directories()
 
     # Create user profile from template if it doesn't exist
-    self.retrieve_user_profile()
-
-    # Load user profile as JSON
-    self.user = json.load(self.user)
-
-    # Listen for incoming peer connections
-    listener = Thread(target = self.peer_listener)
-    listener.start()
+    self.user = json.load(self.load_user_file("profile.json"))
+    self.location = json.load(self.load_user_file("location.json"))
 
     # Create GUI
     self.view = MainWindow(self.username, self.shutdown)
@@ -67,7 +61,11 @@ class Client(object):
     self.view.add_upload_elements(self.upload_profile)
 
     # Dropbox Object
-    self.dropbox = Dropbox(username)
+    self.dropbox = Dropbox(username, self.user, self.location)
+
+    # Listen for incoming peer connections
+    listener = Thread(target = self.peer_listener)
+    listener.start()
 
     self.view.start()
 
@@ -79,14 +77,13 @@ class Client(object):
     self.friends_directory = self.user_directory + u"friends/"
     self.create_dir_if_not_exists(self.friends_directory)
 
-  def retrieve_user_profile(self):
+  def load_user_file(self, filename):
+    filepath = self.user_directory + filename
     try:
-      # Attempt to retrieve user profile
-      self.user = open(self.user_directory + self.username + u".json")
-    except IOError:
-      # Generate template user profile or blank
-      copyfile(u"../extras/profile.json", u"../users/" + self.username + u"/" + self.username + u".json")
-      self.user = open(self.user_directory + self.username + u".json")
+      return open(filepath) # Attempt to retrieve user profile
+    except IOError: # Generate template user profile or blank
+      copyfile(u"../extras/" + filename, filepath)
+      return open(filepath)
 
   def create_dir_if_not_exists(self, path):
     if not os.path.exists(path): os.makedirs(path)
@@ -347,7 +344,7 @@ class Client(object):
       print(self.dropbox.get_token(auth_code))
 
   def upload_profile(self):
-    self.dropbox.upload_profile()
+    self.dropbox.upload_file("profile.json")
 
   def request_friend(self, email):
     self.dropbox.send_friend_request(email)

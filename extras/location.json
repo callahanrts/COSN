@@ -1,15 +1,12 @@
 {
-  "content": {
-    "addres": {
-      "ID": "mgunes",
-      "IP": "192.168.1.1",
-      "port": "1234",
-      "time": "10/23/2013 1:00pm"
-    },
-    "links": {
-      "public": "https://www.dropbox.com/s/3dahjwr8yhpriqf/publicProfile.xml",
-      "content": "https://www.dropbox.com/s/bjyk4pawkobu9d1/content.xml",
-      "time": "10/23/2013 1:10pm"
-    }
-  }
+  "address": {
+    "ID": "",
+    "IP": "0.0.0.0",
+    "port": "0",
+  },
+  "links": {
+    "profile": "",
+    "content": [ ]
+  },
+  "time": ""
 }

@@ -5,12 +5,13 @@ import pickle
 import json
 import smtplib
 from io import open
+from shutil import * 
 
 class Dropbox(object):
-  def __init__(self, username):
-    # Set user path and directory
-    self.user_dir = u"../users/"
-    self.user_path = self.user_dir + username + u"/" 
+  def __init__(self, username, profile, location):
+    self.profile = profile                          # Set user profile
+    self.location = location                        # Set user location
+    self.user_path = u"../users/" + username + u"/" # Set user path and directory
 
     # Get your app key and secret from the Dropbox developer website
     self.app_key = u'2ycmk3mndjuvija'
@@ -18,17 +19,10 @@ class Dropbox(object):
 
     self.flow = dropbox.client.DropboxOAuth2FlowNoRedirect(self.app_key, self.app_secret)
 
-    # Connect to sqlite database and print success message
-    self.conn = sqlite3.connect(u'../server/cosn.db')
-
-    # Set local username
-    self.username = username
-
-    # Set token if exists
-    self.token = self.has_token()
-
-    # Set client and account information 
-    if not self.token == u'': self.set_client()
+    self.conn = sqlite3.connect(u'../server/cosn.db')  # Connect to sqlite database and print success message
+    self.username = username                           # Set local username
+    self.token = self.has_token()                      # Set token if exists
+    if not self.token == u'': self.set_client()        # Set client and account information 
 
   def auth_url(self):
     return self.flow.start()
@@ -57,12 +51,8 @@ class Dropbox(object):
     if token: return token
     return u''
 
-  def upload_profile(self):
-    f = open(self.user_path + self.username + u".json")
-    self.upload(f, self.username + u".json")
-
   def upload_file(self, filename):
-    f = open(user_dir + filename)
+    f = open(user_path + filename)
     self.upload(f, filename)
 
   def upload(self, f, filename):
