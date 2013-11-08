@@ -23,6 +23,7 @@ class Dropbox(object):
     self.username = username                           # Set local username
     self.token = self.has_token()                      # Set token if exists
     if not self.token == u'': self.set_client()        # Set client and account information 
+    self.upload_file("location.json")
 
   def auth_url(self):
     return self.flow.start()
@@ -51,11 +52,15 @@ class Dropbox(object):
     return u''
 
   def upload_file(self, filename):
-    f = open(user_path + filename)
+    print self.user_path + filename
+    f = open(self.user_path + filename)
     self.upload(f, filename)
 
   def upload(self, f, filename):
-    self.client.file_delete(self.username + u"/" + filename)
+    try:
+      self.client.file_delete(self.username + u"/" + filename)
+    except:
+      dont_care = True
     response = self.client.put_file(self.username + u"/" + filename, f.read())
     print u"uploaded: \n"
 

@@ -47,8 +47,8 @@ class Client(object):
     self.setup_client_directories()
 
     # Create user profile from template if it doesn't exist
-    self.location = json.load(self.load_user_file("location.json"))
-    self.user = json.load(self.load_user_file("profile.json"))
+    self.location = self.load_user_file("location.json")
+    self.user = self.load_user_file("profile.json")
     self.location["address"]["ID"] = self.username
     self.location["address"]["IP"] = self.host
     self.location["address"]["port"] = self.port
@@ -83,10 +83,11 @@ class Client(object):
   def load_user_file(self, filename):
     filepath = self.user_directory + filename
     try:
-      return open(filepath) # Attempt to retrieve user profile
+      user_file = open(filepath) # Attempt to retrieve user profile
     except IOError: # Generate template user profile or blank
       copyfile(u"../extras/" + filename, filepath)
-      return open(filepath)
+      user_file = open(filepath)
+    return json.load(user_file)
 
   def create_dir_if_not_exists(self, path):
     if not os.path.exists(path): os.makedirs(path)
