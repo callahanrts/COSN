@@ -17,7 +17,7 @@ class MainWindow(object):
   def initMainWindow(self, title, shutdown):
     # Configure window settings
     self.gb.setTitle(title, self.root)
-    self.gb.setGeometry(u"400x525", self.root)
+    self.gb.setGeometry(u"400x575", self.root)
 
     # Command label
     self.gb.createLabel(u"Command", self.root).pack()
@@ -30,6 +30,7 @@ class MainWindow(object):
     self.chat_message = StringVar()
     self.auth_code    = StringVar()
     self.email        = StringVar()
+    self.friend_url   = StringVar()
 
     # Set initial command values
     self.servecmd.set(u"Register")
@@ -123,6 +124,13 @@ class MainWindow(object):
 
   def add_upload_elements(self, upload_profile):
     self.gb.createButton(u"Update Profile", lambda: upload_profile(), self.root).pack()
+
+  def add_accept_friend_elements(self, accept_friend):
+    frame = self.gb.createFrame(self.root)
+    frame.pack()
+    self.gb.createLabel(u"Link sent to you from a friend", frame).pack()    # Auth code label
+    self.gb.createInput(self.friend_url, frame).pack(side = LEFT)           # Dropbox auth code input
+    self.gb.createButton(u"Accept", lambda: accept_friend(self.friend_url.get()), frame).pack(side = RIGHT)    # Link dropbox button
 
   # Log messages when events happen
   def log(self, message):

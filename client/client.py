@@ -62,6 +62,7 @@ class Client(object):
     self.view.add_log_box()
     self.view.add_drive_elements(self.link_dropbox)
     self.view.add_request_elements(self.request_friend)
+    self.view.add_accept_friend_elements(self.accept_friend)
     self.view.add_upload_elements(self.upload_profile)
 
     # Dropbox Object
@@ -364,6 +365,8 @@ class Client(object):
   def request_friend(self, email):
     self.dropbox.send_friend_request(email)
 
+  def accept_friend(self, url):
+    self.friends.append(self.dropbox.username_from_url(url))
 
 if __name__ == u'__main__':
   client = Client(sys.argv[1], sys.argv[2], sys.argv[3])
