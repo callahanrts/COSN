@@ -1,10 +1,13 @@
+import sys
+sys.path.append(u'../requests')
+
 # Include the Dropbox SDK
 import dropbox
 import sqlite3
 import pickle
 import json
 import smtplib
-import urllib2
+import requests
 from threading import *
 from io        import open
 from shutil    import * 
@@ -85,11 +88,11 @@ class Dropbox(object):
 
 
   def download_file(self, loc_url):
-    response = urllib2.urlopen(loc_url)
-    return json.load(response)
+    response = requests.get(url=loc_url)
+    return json.loads(response.content)
 
   def username_from_url(self, url):
-    print self.download_file(url)
+    return self.download_file(url)
 
   def send_friend_request(self, email):
     self.media = self.client.media(self.username + u"/profile.json")

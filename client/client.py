@@ -366,7 +366,10 @@ class Client(object):
     self.dropbox.send_friend_request(email)
 
   def accept_friend(self, url):
-    self.friends.append(self.dropbox.username_from_url(url))
+    friend = self.dropbox.username_from_url(url)
+    self.friends.append(friend["info"]["name"])
+    print friend
+    print self.friends
 
 if __name__ == u'__main__':
   client = Client(sys.argv[1], sys.argv[2], sys.argv[3])
