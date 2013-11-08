@@ -49,6 +49,7 @@ class Client(object):
     # Create user profile from template if it doesn't exist
     self.location = self.load_user_file("location.json")
     self.user = self.load_user_file("profile.json")
+    self.content = self.load_user_file("content.json")
     self.location["address"]["ID"] = self.username  
     self.location["address"]["IP"] = self.host
     self.location["address"]["port"] = self.port
@@ -64,7 +65,7 @@ class Client(object):
     self.view.add_upload_elements(self.upload_profile)
 
     # Dropbox Object
-    self.dropbox = Dropbox(username, self.user, self.location)
+    self.dropbox = Dropbox(username, self.user, self.location, self.content)
 
     # Listen for incoming peer connections
     listener = Thread(target = self.peer_listener)

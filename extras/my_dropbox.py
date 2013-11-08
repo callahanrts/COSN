@@ -8,9 +8,10 @@ from io import open
 from shutil import * 
 
 class Dropbox(object):
-  def __init__(self, username, profile, location):
-    self.profile = profile                          # Set user profile
-    self.location = location                        # Set user location
+  def __init__(self, username, profile, location, content):
+    self.profile   = profile                        # Set user profile
+    self.location  = location                       # Set user location
+    self.content   = content                        # Set user content 
     self.user_path = u"../users/" + username + u"/" # Set user path and directory
 
     # Get your app key and secret from the Dropbox developer website
@@ -24,9 +25,11 @@ class Dropbox(object):
     self.token = self.has_token()                       # Set token if exists
     if not self.token == u'': self.set_client()         # Set client and account information 
     self.upload_file("profile.json")                    # Upload user profile
+    self.upload_file("content.json")                    # Upload user content
 
     # Set location variables
-    self.location["links"]["public"] = self.client.share(self.username + u"/profile.json")
+    self.location["links"]["content"] = self.client.share(self.username + u"/content.json")
+    self.location["links"]["public"]  = self.client.share(self.username + u"/profile.json")
     self.save_user_file("location.json", self.location) # Save location to file
     self.upload_file("location.json")                   # Upload location
 
@@ -66,7 +69,6 @@ class Dropbox(object):
     except:
       dont_care = True
     response = self.client.put_file(self.username + u"/" + filename, f.read())
-    print u"uploaded: \n"
 
   def save_user_file(self, filename, json_obj):
     filepath = self.user_path + filename
