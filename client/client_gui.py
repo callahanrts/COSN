@@ -49,7 +49,7 @@ class MainWindow(object):
     self.gb.createButton(u"Send (server)", lambda: server_command(self.servecmd.get().upper(), self.username.get()), frame).grid(row=0, column=1)
     
     # Client command drop down and send button
-    self.gb.createMenuButton(self.peercmd, [u"Friend", u"Request", u"Relay", u"Get"], frame).grid(row=1, column=0)# Took Chat command out
+    self.gb.createMenuButton(self.peercmd, [u"Relay", u"Get"], frame).grid(row=1, column=0)# Took Chat command out
     self.gb.createButton(u"Send (client)", lambda: peer_command(self.peercmd.get().upper(), self.username.get(), self.username2.get()), frame).grid(row=1, column=1)    
 
   def add_input_elements(self):

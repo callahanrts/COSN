@@ -66,7 +66,7 @@ class Client(object):
     self.view.add_upload_elements(self.upload_profile)
 
     # Dropbox Object
-    self.dropbox = Dropbox(username, self.user, self.location, self.content)
+    self.dropbox = Dropbox(username, self.user, self.location, self.content, self.view)
 
     # Listen for incoming peer connections
     listener = Thread(target = self.peer_listener)
@@ -237,7 +237,7 @@ class Client(object):
   def respond_to(self, message):
     # Switch on the different types of messages or return original if not recognized
     if message[0] == u"FRIEND":
-      self.friends.append(message[1])       # Add to friends list
+      self.dropbox.accept_friend(message[1], sqlite3.connect(u'../server/cosn.db'))
       return pickle.dumps(self.cmd.confirm) # Queue message to be returned
 
     elif message[0] == u"CHAT": 
@@ -354,10 +354,9 @@ class Client(object):
 
   def link_dropbox(self, auth_code):
     if not auth_code:
-      self.view.log("Copy the following url into your browser to link dropbox")
-      self.view.log(self.dropbox.auth_url())
+      self.dropbox.auth_url()
     else:
-      print(self.dropbox.get_token(auth_code))
+      if self.dropbox.get_token(auth_code): self.view.log("Dropbox linked successfully") 
 
   def upload_profile(self):
     self.dropbox.upload_file("profile.json")
@@ -367,8 +366,17 @@ class Client(object):
     t.start()
 
   def accept_friend(self, url):
-    friend = self.dropbox.accept_friend(url)
-    print friend
+    friend = self.dropbox.accept_friend(url, None)
+    self.chat_conn = socket(AF_INET, SOCK_STREAM)
+    
+    try:
+      self.chat_conn.connect(friend)
+      self.chat_conn.send(pickle.dumps(["FRIEND", self.dropbox.share_url()])) 
+      self.view.log(self.retrieve_data())
+    except: # log errors
+      logging.exception(u"hm")
+    self.chat_conn.close()
+
 
 if __name__ == u'__main__':
   client = Client(sys.argv[1], sys.argv[2], sys.argv[3])

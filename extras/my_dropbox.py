@@ -13,10 +13,11 @@ from io        import open
 from shutil    import * 
 
 class Dropbox(object):
-  def __init__(self, username, profile, location, content):
+  def __init__(self, username, profile, location, content, view):
     self.profile   = profile                        # Set user profile
     self.location  = location                       # Set user location
-    self.content   = content                        # Set user content 
+    self.content   = content                        # Set user content
+    self.view      = view                           # Set view for logging 
     self.user_path = u"../users/" + username + u"/" # Set user path and directory
 
     # Get your app key and secret from the Dropbox developer website
@@ -28,11 +29,13 @@ class Dropbox(object):
     self.conn = sqlite3.connect(u'../server/cosn.db')   # Connect to sqlite database and print success message
     self.username = username                            # Set local username
     self.token = self.has_token()                       # Set token if exists
-    if not self.token == u'': self.set_client()         # Set client and account information 
-
-    # Do updating uploads in a separate thread because it takes too damn long
-    t = Thread(target = self.initial_uploads)
-    t.start()
+    if self.token != u'': 
+      self.set_client() # Set client and account information 
+      # Do updating uploads in a separate thread because it takes too damn long
+      t = Thread(target = self.initial_uploads)
+      t.start()
+    else:
+      self.auth_url()
 
   def initial_uploads(self):
     self.upload_file("profile.json")                    # Upload user profile
@@ -45,16 +48,21 @@ class Dropbox(object):
     self.upload_file("location.json")                   # Upload location
 
   def auth_url(self):
-    return self.flow.start()
+    self.view.log("Copy the following url into your browser to link dropbox")
+    self.view.log("Then copy the code into the link dropbox input")
+    self.view.log(self.flow.start())
 
   def get_token(self, auth_code):
     if self.token == u'':
-      # This will fail if the user enters an invalid authorization code
-      self.token, self.user_id = self.flow.finish(auth_code)
-      self.set_client()
-      self.conn.execute(u"INSERT INTO dropbox(username, token) VALUES(?, ?)", [self.username, self.token])
-      self.conn.commit()
-    return self.token
+      try: 
+        # This will fail if the user enters an invalid authorization code
+        self.token, self.user_id = self.flow.finish(auth_code)
+        self.set_client()
+        self.conn.execute(u"INSERT INTO dropbox(username, token) VALUES(?, ?)", [self.username, self.token])
+        self.conn.commit()
+      except: 
+        return False
+    return True
 
   def set_client(self):
     self.client = dropbox.client.DropboxClient(self.token) 
@@ -91,23 +99,26 @@ class Dropbox(object):
     response = requests.get(url=loc_url)
     return json.loads(response.content)
 
-  def accept_friend(self, url):
+  def accept_friend(self, url, conn):
     friend = self.download_file(url)
-    self.add_friend(friend, url)
+    self.add_friend(friend, url, conn if conn != None else self.conn)
     return (friend["address"]["IP"], friend["address"]["port"])
 
-  def add_friend(self, friend, url): 
-    cursor = self.conn.execute(u"SELECT * FROM friend WHERE username = ? AND friend = ? LIMIT 1", [self.username, friend["address"]["ID"]])
+  def add_friend(self, friend, url, conn): 
+    cursor = conn.execute(u"SELECT * FROM friend WHERE username = ? AND friend = ? LIMIT 1", [self.username, friend["address"]["ID"]])
     for row in cursor:
       if row[0]:
         return
-    self.conn.execute(u"INSERT INTO friend(username, friend, location_url) VALUES(?, ?, ?)", [self.username, friend["address"]["ID"], url])
-    self.conn.commit()
+    conn.execute(u"INSERT INTO friend(username, friend, location_url) VALUES(?, ?, ?)", [self.username, friend["address"]["ID"], url])
+    conn.commit()
+
+  def share_url(self):
+    self.media = self.client.media(self.username + u"/location.json")
+    return self.media["url"]
 
   def send_friend_request(self, email):
-    self.media = self.client.media(self.username + u"/location.json")
     SUBJECT = u'COSN Friend Request'
-    TEXT = u'You\'re friend, '+ self.username + u', has sent you a friend request. \n\n Follow this link to accept the shared profile ' + self.media[u'url']
+    TEXT = u'You\'re friend, '+ self.username + u', has sent you a friend request. \n\n Follow this link to accept the shared profile ' + self.share_url()
 
     gmail_sender = u'cosnunr@gmail.com'
     gmail_passwd = u'JJ9VxgGjuwKeJ7L'
