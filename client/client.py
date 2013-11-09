@@ -363,13 +363,12 @@ class Client(object):
     self.dropbox.upload_file("profile.json")
 
   def request_friend(self, email):
-    self.dropbox.send_friend_request(email)
+    t = Thread(target = self.dropbox.send_friend_request(email))
+    t.start()
 
   def accept_friend(self, url):
-    friend = self.dropbox.username_from_url(url)
-    self.friends.append(friend["info"]["name"])
+    friend = self.dropbox.accept_friend(url)
     print friend
-    print self.friends
 
 if __name__ == u'__main__':
   client = Client(sys.argv[1], sys.argv[2], sys.argv[3])

@@ -91,16 +91,26 @@ class Dropbox(object):
     response = requests.get(url=loc_url)
     return json.loads(response.content)
 
-  def username_from_url(self, url):
-    return self.download_file(url)
+  def accept_friend(self, url):
+    friend = self.download_file(url)
+    self.add_friend(friend, url)
+    return (friend["address"]["IP"], friend["address"]["port"])
+
+  def add_friend(self, friend, url): 
+    cursor = self.conn.execute(u"SELECT * FROM friend WHERE username = ? AND friend = ? LIMIT 1", [self.username, friend["address"]["ID"]])
+    for row in cursor:
+      if row[0]:
+        return
+    self.conn.execute(u"INSERT INTO friend(username, friend, location_url) VALUES(?, ?, ?)", [self.username, friend["address"]["ID"], url])
+    self.conn.commit()
 
   def send_friend_request(self, email):
-    self.media = self.client.media(self.username + u"/profile.json")
+    self.media = self.client.media(self.username + u"/location.json")
     SUBJECT = u'COSN Friend Request'
     TEXT = u'You\'re friend, '+ self.username + u', has sent you a friend request. \n\n Follow this link to accept the shared profile ' + self.media[u'url']
 
     gmail_sender = u'cosnunr@gmail.com'
-    gmail_passwd = u'cosnpassword'
+    gmail_passwd = u'JJ9VxgGjuwKeJ7L'
 
     server = smtplib.SMTP(u'smtp.gmail.com', 587)
     server.ehlo()
