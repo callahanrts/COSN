@@ -54,9 +54,18 @@ class Client(object):
     self.location["address"]["IP"] = self.host
     self.location["address"]["port"] = self.port
 
+
+    self.conn = sqlite3.connect(u'../server/cosn.db')
+    cursor = self.conn.execute(u"SELECT friend FROM friend WHERE username = ?", [self.username])
+    f_list = []
+    for row in cursor:
+      if row[0]:
+        f_list.append(row[0])
+    print f_list
+
     # Create GUI
     self.view = MainWindow(self.username, self.shutdown)
-    self.view.add_command_elements(self.server_command_handler, self.peer_command_handler)
+    self.view.add_command_elements(self.peer_command_handler, f_list)
     self.view.add_input_elements()
     self.view.add_chat_elements(self.chat_command)
     self.view.add_log_box()
@@ -98,34 +107,6 @@ class Client(object):
 
   def create_dir_if_not_exists(self, path):
     if not os.path.exists(path): os.makedirs(path)
-
-  def server_command_handler(self, command, user):
-    if command == u"REGISTER":
-      send_message = self.servecmd.register_user()
-
-    elif command == u"QUERY":
-      send_message = self.servecmd.query_user(user)
-
-    elif command == u"LOGOUT":
-      send_message = self.servecmd.logout_user()
-
-    self.view.log(self.send_udp(send_message))
-
-  def send_udp(self, send_message):
-    # UDP Socket to connect with server
-    udp_socket = socket(AF_INET, SOCK_DGRAM)
-    udp_socket.settimeout(2)
-
-    try: 
-      # Try to send data over UDP
-      udp_socket.sendto(pickle.dumps(send_message), self.server_addr)
-      recv_data, addr = udp_socket.recvfrom(1024)
-      return pickle.loads(recv_data) 
-
-    except timeout:
-      # Catch server timeout error
-      self.view.log(u"Server timed out")
-
 
   def peer_command_handler(self, command, user, alt_data):
     request_for_profile = False

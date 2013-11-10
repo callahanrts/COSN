@@ -23,7 +23,6 @@ class MainWindow(object):
     self.gb.createLabel(u"Command", self.root).pack()
 
     # Create needed gui variables 
-    self.servecmd     = StringVar()
     self.peercmd      = StringVar()
     self.username     = StringVar()
     self.username2    = StringVar()
@@ -33,45 +32,37 @@ class MainWindow(object):
     self.friend_url   = StringVar()
 
     # Set initial command values
-    self.servecmd.set(u"Register")
-    self.peercmd.set(u"Friend")
+    self.username.set(u"Friend")
+    self.peercmd.set(u"Command")
 
     # Shutdown method
     self.root.protocol("WM_DELETE_WINDOW", lambda: shutdown(self.root))
 
-  def add_command_elements(self, server_command, peer_command):
+  def add_command_elements(self, peer_command, friends):
     # Create frame for command menu buttons
     frame = self.gb.createFrame(self.root)
     frame.pack()
     
-    # Server command drop down and send button
-    self.gb.createMenuButton(self.servecmd, [u"Register", u"Query", u"Logout"], frame).grid(row=0, column=0)
-    self.gb.createButton(u"Send (server)", lambda: server_command(self.servecmd.get().upper(), self.username.get()), frame).grid(row=0, column=1)
-    
     # Client command drop down and send button
-    self.gb.createMenuButton(self.peercmd, [u"Relay", u"Get"], frame).grid(row=1, column=0)# Took Chat command out
-    self.gb.createButton(u"Send (client)", lambda: peer_command(self.peercmd.get().upper(), self.username.get(), self.username2.get()), frame).grid(row=1, column=1)    
+    self.gb.createMenuButton(self.peercmd, [u"Get Profile", u"Relay", u"Get File"], frame).grid(row=0, column=0)# Took Chat command out
+    self.gb.createButton(u"Send (client)", lambda: peer_command(self.peercmd.get().upper(), self.username.get(), self.username2.get()), frame).grid(row=0, column=1)    
+
+    # Create input for first username
+    self.gb.createMenuButton(self.username, friends, frame).grid(row=1, column=0, columnspan=2)
+
 
   def add_input_elements(self):
     # Create frame for chat input and send button
     frame = self.gb.createFrame(self.root)
     frame.pack()
 
-    # First username label 
-    user1 = self.gb.createLabel(u"Username 1", frame)
-    user1.grid(row=0, column=0)
-    user1.config(width=10)
-    
-    # Create input for first username
-    self.gb.createInput(self.username, frame).grid(row=0, column=1)
-
     # Second username label
     user2 = self.gb.createLabel(u"Username 2", frame)
-    user2.grid(row=1, column=0)
+    user2.grid(row=0, column=0)
     user2.config(width=10)
 
     # Create input for second username
-    self.gb.createInput(self.username2, frame).grid(row=1, column=1)
+    self.gb.createInput(self.username2, frame).grid(row=0, column=1)
 
   def add_chat_elements(self, chat_command):
     # Chat message label

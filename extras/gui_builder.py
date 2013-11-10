@@ -17,7 +17,7 @@ class GuiBuilder(object):
 
   def createMenuButton(self, cmd_var, options, window):
     option = OptionMenu(window, cmd_var, *options)
-    option.config(width=10)
+    option.config(width=15)
     return option
 
   def createInput(self, textVar, window):
