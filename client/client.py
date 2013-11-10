@@ -66,7 +66,6 @@ class Client(object):
     # Create GUI
     self.view = MainWindow(self.username, self.shutdown)
     self.view.add_command_elements(self.peer_command_handler, f_list)
-    self.view.add_input_elements()
     self.view.add_chat_elements(self.chat_command)
     self.view.add_log_box()
     self.view.add_drive_elements(self.link_dropbox)
@@ -108,62 +107,20 @@ class Client(object):
   def create_dir_if_not_exists(self, path):
     if not os.path.exists(path): os.makedirs(path)
 
-  def peer_command_handler(self, command, user, alt_data):
-    request_for_profile = False
-    request_for_file = False
-
-    # Create socket to connect with a user
-    self.chat_conn = socket(AF_INET, SOCK_STREAM)
-
+  def peer_command_handler(self, command, user):
     # Respond to commands
     if command == u"FRIEND":
-      self.friends.append(user)
-      send_message = self.clientcmd.befriend_user(self.username)
+      self.chat_conn = socket(AF_INET, SOCK_STREAM)
+      try:
+        self.chat_conn.connect(user)
+        self.chat_conn.send(pickle.dumps([command, self.dropbox.share_url()])) 
+        self.view.log(self.retrieve_data())
+      except: # log errors
+        logging.exception(u"hm")
+      self.chat_conn.close()
 
-    elif command == u"REQUEST": 
-      send_message = self.clientcmd.request_profile(user, self.user[u"profile"][u"info"][u"version"]) # version but not needed yet
-      request_for_profile = True
-
-    elif command == u"RELAY": 
-      send_message = self.clientcmd.request_profile_relay(alt_data, self.user[u"profile"][u"info"][u"version"]) # version but not needed yet
-      request_for_profile = True
-
-    elif command == u"GET": 
-      send_message = self.clientcmd.request_file(alt_data)
-      request_for_file = True
-
-    # Get user data
-    user_data = self.send_udp(self.servecmd.query_user(user))
-    try:
-      self.chat_conn.connect((user_data[2], int(user_data[3])))
-      self.chat_conn.send(pickle.dumps(send_message)) 
-      response = self.retrieve_data()
-
-      if request_for_profile:
-        self.save_profile(response)
-
-      elif request_for_file:
-        self.save_file(response)
-
-      else:
-        self.view.log(response) 
-    except: # log errors
-      logging.exception(u"hm")
-      self.view.log(self.send_udp(self.clientcmd.user_offline(user_data[4])))
-
-    self.chat_conn.close()
-
-  def save_file(self, data):
-    # Set directory or create if needed
-    directory = u"../users/"+self.username+u"/friends/files/"
-    self.create_dir_if_not_exists(directory)
-
-    if len(data) > 0:  # Create File
-      f = open(directory+data[1], u"wb")
-      f.write(data[3])
-      f.close()
-    else: 
-      self.view.log(data)
+    elif command == u"PROFILE": 
+      if self.dropbox.get_friend_files(user) == False: self.view.log("Profile not found")
 
   def retrieve_data(self):
     self.chat_conn.settimeout(2)
@@ -178,22 +135,6 @@ class Client(object):
         break
     return pickle.loads(data)
 
-  def save_profile(self, data):
-    if len(data) > 1:
-      # Set directory or create if needed
-      directory = u"../users/"+self.username+u"/friends/"+data[1]+u"/"
-      self.create_dir_if_not_exists(directory)
-
-      # Parse JSON profile
-      json_profile = json.loads(data[3])
-
-      # Write to file
-      with open(directory + data[1] + u".json", u"w") as outfile:
-        json.dump(json_profile, outfile, indent=2)
-    
-    else:
-      self.view.log(data)
-
   # Current, single window chat
   def chat_command(self, message, user): 
     if user in self.friends:
@@ -204,7 +145,8 @@ class Client(object):
 
       try:
         self.chat_conn.connect((user_data[2], int(user_data[3])))
-        self.chat_conn.send(pickle.dumps(self.clientcmd.chat_message(message, self.username, self.chat_counter))) 
+        chat_message = self.clientcmd.chat_message(message, self.username, self.chat_counter)
+        self.chat_conn.send(pickle.dumps(chat_message))
         self.chat_counter += 1
 
         response = self.retrieve_data() # Get message
@@ -318,9 +260,10 @@ class Client(object):
       readable, writable, exceptional = select.select(inputs, outputs, inputs, 3)
       if len(readable) + len(writable) + len(exceptional) is 0: 
         continue
-      self.handle_inputs(readable, inputs, outputs, message_queues, tcp_socket) # Handle inputs  
-      self.handle_outputs(writable, outputs, message_queues)                    # Handle outputes
-      self.handle_exceptionals(exceptional, inputs, outputs, message_queues)    # Handle "exceptional conditions"
+      # Handle, inputs, outputs and exceptionals
+      self.handle_inputs(readable, inputs, outputs, message_queues, tcp_socket)
+      self.handle_outputs(writable, outputs, message_queues)
+      self.handle_exceptionals(exceptional, inputs, outputs, message_queues)
 
     tcp_socket.close() # Close tcp connection when server exits
 
@@ -348,27 +291,9 @@ class Client(object):
 
   def accept_friend(self, url):
     friend = self.dropbox.accept_friend(url, None)
-    self.chat_conn = socket(AF_INET, SOCK_STREAM)
-    
-    try:
-      self.chat_conn.connect(friend)
-      self.chat_conn.send(pickle.dumps(["FRIEND", self.dropbox.share_url()])) 
-      self.view.log(self.retrieve_data())
-    except: # log errors
-      logging.exception(u"hm")
-    self.chat_conn.close()
+    self.peer_command_handler("FRIEND", friend)
 
 
 if __name__ == u'__main__':
   client = Client(sys.argv[1], sys.argv[2], sys.argv[3])
-
-
-
-
-
-
-
-
-
-
 

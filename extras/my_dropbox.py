@@ -7,10 +7,11 @@ import sqlite3
 import pickle
 import json
 import smtplib
-import requests
+import os
 from threading import *
 from io        import open
 from shutil    import * 
+import requests
 
 class Dropbox(object):
   def __init__(self, username, profile, location, content, view):
@@ -97,6 +98,7 @@ class Dropbox(object):
 
   def download_file(self, loc_url):
     response = requests.get(url=loc_url)
+    print response
     return json.loads(response.content)
 
   def accept_friend(self, url, conn):
@@ -115,6 +117,26 @@ class Dropbox(object):
   def share_url(self):
     self.media = self.client.media(self.username + u"/location.json")
     return self.media["url"]
+
+  def get_location(self, friend):
+    cursor = self.conn.execute(u"SELECT location_url FROM friend WHERE username = ? AND friend = ? LIMIT 1", [self.username, friend])
+    user = cursor.fetchone()
+    if user != None: return self.download_file(user[0])
+    return None
+
+  def get_profile(self, friend):
+    loc = self.get_location(friend)
+    if loc != None: 
+      return (self.download_file(loc["links"]["public"]["url"]), self.download_file(loc["links"]["content"]["url"]))
+    return None
+
+  def get_friend_files(self, friend):
+    profile, content = self.get_profile(friend)
+    if profile == None: return False
+    filepath = self.user_path + "friends/" + friend + "/"
+    if not os.path.exists(filepath): os.makedirs(filepath)
+    self.save_user_file("friends/" + friend + "/profile.json", profile)
+    self.save_user_file("friends/" + friend + "/content.json", content)
 
   def send_friend_request(self, email):
     SUBJECT = u'COSN Friend Request'

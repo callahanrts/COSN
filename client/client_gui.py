@@ -19,13 +19,8 @@ class MainWindow(object):
     self.gb.setTitle(title, self.root)
     self.gb.setGeometry(u"400x575", self.root)
 
-    # Command label
-    self.gb.createLabel(u"Command", self.root).pack()
-
     # Create needed gui variables 
-    self.peercmd      = StringVar()
     self.username     = StringVar()
-    self.username2    = StringVar()
     self.chat_message = StringVar()
     self.auth_code    = StringVar()
     self.email        = StringVar()
@@ -33,7 +28,6 @@ class MainWindow(object):
 
     # Set initial command values
     self.username.set(u"Friend")
-    self.peercmd.set(u"Command")
 
     # Shutdown method
     self.root.protocol("WM_DELETE_WINDOW", lambda: shutdown(self.root))
@@ -42,27 +36,11 @@ class MainWindow(object):
     # Create frame for command menu buttons
     frame = self.gb.createFrame(self.root)
     frame.pack()
-    
-    # Client command drop down and send button
-    self.gb.createMenuButton(self.peercmd, [u"Get Profile", u"Relay", u"Get File"], frame).grid(row=0, column=0)# Took Chat command out
-    self.gb.createButton(u"Send (client)", lambda: peer_command(self.peercmd.get().upper(), self.username.get(), self.username2.get()), frame).grid(row=0, column=1)    
 
-    # Create input for first username
-    self.gb.createMenuButton(self.username, friends, frame).grid(row=1, column=0, columnspan=2)
+    if len(friends) == 0: friends = ["No Friends"]
 
-
-  def add_input_elements(self):
-    # Create frame for chat input and send button
-    frame = self.gb.createFrame(self.root)
-    frame.pack()
-
-    # Second username label
-    user2 = self.gb.createLabel(u"Username 2", frame)
-    user2.grid(row=0, column=0)
-    user2.config(width=10)
-
-    # Create input for second username
-    self.gb.createInput(self.username2, frame).grid(row=0, column=1)
+    self.gb.createMenuButton(self.username, friends, frame).grid(row=0, column=0)
+    self.gb.createButton(u"Get Profile", lambda: peer_command("PROFILE", self.username.get()), frame).grid(row=0, column=1)    
 
   def add_chat_elements(self, chat_command):
     # Chat message label
@@ -114,7 +92,7 @@ class MainWindow(object):
     self.gb.createButton(u"Give Permission", lambda: request_friend(self.email.get()), frame).pack(side = RIGHT)
 
   def add_upload_elements(self, upload_profile):
-    self.gb.createButton(u"Update Profile", lambda: upload_profile(), self.root).pack()
+    self.gb.createButton(u"Upload Profile", lambda: upload_profile(), self.root).pack()
 
   def add_accept_friend_elements(self, accept_friend):
     frame = self.gb.createFrame(self.root)
