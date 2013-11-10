@@ -27,7 +27,7 @@ class Dropbox(object):
 
     self.flow = dropbox.client.DropboxOAuth2FlowNoRedirect(self.app_key, self.app_secret)
 
-    self.conn = sqlite3.connect(u'../server/cosn.db')   # Connect to sqlite database and print success message
+    self.conn = sqlite3.connect(u'../server/cosn.db')   # Connect to sqlite database
     self.username = username                            # Set local username
     self.token = self.has_token()                       # Set token if exists
     if self.token != u'': 
@@ -59,7 +59,8 @@ class Dropbox(object):
         # This will fail if the user enters an invalid authorization code
         self.token, self.user_id = self.flow.finish(auth_code)
         self.set_client()
-        self.conn.execute(u"INSERT INTO dropbox(username, token) VALUES(?, ?)", [self.username, self.token])
+        query = u"INSERT INTO dropbox(username, token) VALUES(?, ?)"
+        self.conn.execute(query, [self.username, self.token])
         self.conn.commit()
       except: 
         return False
@@ -95,10 +96,20 @@ class Dropbox(object):
     with open(filepath, 'wb') as outfile:
       json.dump(json_obj, outfile, indent=2, sort_keys=True)
 
+  def save_user_media(self, filename, content):
+    f = open(filename, "wb")
+    f.write(content)
+    f.close()
+
+  def download_and_save(self, filename, url):
+    r = requests.get(url, stream=True)
+    if r.status_code == 200:
+      with open(filename, 'wb') as f:
+        for chunk in r.iter_content():
+          f.write(chunk)
 
   def download_file(self, loc_url):
     response = requests.get(url=loc_url)
-    print response
     return json.loads(response.content)
 
   def accept_friend(self, url, conn):
@@ -107,11 +118,13 @@ class Dropbox(object):
     return (friend["address"]["IP"], friend["address"]["port"])
 
   def add_friend(self, friend, url, conn): 
-    cursor = conn.execute(u"SELECT * FROM friend WHERE username = ? AND friend = ? LIMIT 1", [self.username, friend["address"]["ID"]])
+    query = u"SELECT * FROM friend WHERE username = ? AND friend = ? LIMIT 1"
+    cursor = conn.execute(query, [self.username, friend["address"]["ID"]])
     for row in cursor:
       if row[0]:
         return
-    conn.execute(u"INSERT INTO friend(username, friend, location_url) VALUES(?, ?, ?)", [self.username, friend["address"]["ID"], url])
+    query = u"INSERT INTO friend(username, friend, location_url) VALUES(?, ?, ?)"
+    conn.execute(query, [self.username, friend["address"]["ID"], url])
     conn.commit()
 
   def share_url(self):
@@ -119,7 +132,8 @@ class Dropbox(object):
     return self.media["url"]
 
   def get_location(self, friend):
-    cursor = self.conn.execute(u"SELECT location_url FROM friend WHERE username = ? AND friend = ? LIMIT 1", [self.username, friend])
+    query = u"SELECT location_url FROM friend WHERE username = ? AND friend = ? LIMIT 1"
+    cursor = self.conn.execute(query, [self.username, friend])
     user = cursor.fetchone()
     if user != None: return self.download_file(user[0])
     return None
@@ -127,8 +141,32 @@ class Dropbox(object):
   def get_profile(self, friend):
     loc = self.get_location(friend)
     if loc != None: 
-      return (self.download_file(loc["links"]["public"]["url"]), self.download_file(loc["links"]["content"]["url"]))
+      return (self.download_file(loc["links"]["public"]["url"]), 
+              self.download_file(loc["links"]["content"]["url"]))
     return None
+
+  def download_content(self, path, content):
+    filepath = path + "/content/" 
+    if not os.path.exists(filepath): os.makedirs(filepath)
+    for item in content:
+      media_file = filepath + item["id"] + self.extension(item["type"])
+      if os.path.isfile(media_file): continue
+      if item["type"] == "text": 
+        self.save_user_media(media_file, item["info"])
+      elif item["type"] == "video":
+        self.save_user_media(media_file, item["info"] + '\n' + item["url"])
+      else:
+        self.download_and_save(media_file, item["url"])
+
+  def extension(self, file_type):
+    if file_type == "text": 
+      return ".txt"
+    elif file_type == "image": 
+      return ".jpg"
+    elif file_type == "video":
+      return ".txt"
+    elif file_type == "audio":
+      return ".mp3"
 
   def get_friend_files(self, friend):
     profile, content = self.get_profile(friend)
@@ -136,11 +174,12 @@ class Dropbox(object):
     filepath = self.user_path + "friends/" + friend + "/"
     if not os.path.exists(filepath): os.makedirs(filepath)
     self.save_user_file("friends/" + friend + "/profile.json", profile)
-    self.save_user_file("friends/" + friend + "/content.json", content)
+    self.download_content(filepath, content)
 
   def send_friend_request(self, email):
     SUBJECT = u'COSN Friend Request'
-    TEXT = u'You\'re friend, '+ self.username + u', has sent you a friend request. \n\n Follow this link to accept the shared profile ' + self.share_url()
+    TEXT = """You\'re friend, '+ self.username + u', has sent you a friend request. \n\n 
+              Follow this link to accept the shared profile""" + self.share_url()
 
     gmail_sender = u'cosnunr@gmail.com'
     gmail_passwd = u'JJ9VxgGjuwKeJ7L'
@@ -150,7 +189,8 @@ class Dropbox(object):
     server.starttls()
     server.login(gmail_sender, gmail_passwd)
 
-    BODY = u'\r\n'.join([u'To: %s' % email, u'From: %s' % gmail_sender, u'Subject: %s' % SUBJECT, u'', TEXT])
+    BODY = u'\r\n'.join([u'To: %s' % email, 
+                         u'From: %s' % gmail_sender, u'Subject: %s' % SUBJECT, u'', TEXT])
 
     try:
       server.sendmail(gmail_sender, [email], BODY)
