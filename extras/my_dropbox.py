@@ -138,6 +138,14 @@ class Dropbox(object):
     if user != None: return self.download_file(user[0])
     return None
 
+  def get_friend(self, friend):
+    loc = self.get_location(friend)
+    return {
+      "username": friend, 
+      "host": loc["address"]["ID"], 
+      "port": loc["address"]["port"]
+    }
+
   def get_profile(self, friend):
     loc = self.get_location(friend)
     if loc != None: 
@@ -178,8 +186,7 @@ class Dropbox(object):
 
   def send_friend_request(self, email):
     SUBJECT = u'COSN Friend Request'
-    TEXT = """You\'re friend, '+ self.username + u', has sent you a friend request. \n\n 
-              Follow this link to accept the shared profile""" + self.share_url()
+    TEXT = "You're friend, "+ self.username + ", has sent you a friend request. Follow this link to accept the shared profile " + self.share_url()
 
     gmail_sender = u'cosnunr@gmail.com'
     gmail_passwd = u'JJ9VxgGjuwKeJ7L'

@@ -41,7 +41,13 @@ class Client(object):
     self.chat_counter = 1
 
     # Friends list
-    self.friends = [ ]
+    self.friends = [ 
+      {
+        "username": "test",
+        "host": "''", 
+        "port": 9000
+      } 
+    ]
 
     # Create directories if they don't exist
     self.setup_client_directories()
@@ -61,7 +67,6 @@ class Client(object):
     for row in cursor:
       if row[0]:
         f_list.append(row[0])
-    print f_list
 
     # Create GUI
     self.view = MainWindow(self.username, self.shutdown)
@@ -75,6 +80,10 @@ class Client(object):
 
     # Dropbox Object
     self.dropbox = Dropbox(username, self.user, self.location, self.content, self.view)
+
+    for friend in f_list:
+      if friend == "test": continue
+      self.friends.append(self.dropbox.get_friend(friend))
 
     # Listen for incoming peer connections
     listener = Thread(target = self.peer_listener)
@@ -137,14 +146,13 @@ class Client(object):
 
   # Current, single window chat
   def chat_command(self, message, user): 
-    if user in self.friends:
+    loc = self.dropbox.get_location(user)
+    if loc["address"]["port"] != 0 and loc["address"]["IP"] != '0.0.0.0':
       # Open connection and get user
       self.chat_conn = socket(AF_INET, SOCK_STREAM)
-      user_data = self.send_udp(self.servecmd.query_user(user))
       self.view.log_message(self.username+u": "+message)
-
       try:
-        self.chat_conn.connect((user_data[2], int(user_data[3])))
+        self.chat_conn.connect((loc["address"]["IP"], int(loc["address"]["port"])))
         chat_message = self.clientcmd.chat_message(message, self.username, self.chat_counter)
         self.chat_conn.send(pickle.dumps(chat_message))
         self.chat_counter += 1
@@ -153,9 +161,9 @@ class Client(object):
         self.view.log(response) 
       except:
         logging.exception(u"hm")
-        self.view.log(self.send_udp(self.clientcmd.user_offline(user_data[4])))
-    else:
-      self.view.log(u"You must be friends with this user before chatting with them")
+
+    else: 
+      self.view.log(u"Your friend is not available")
 
   def respond_to(self, message):
     # Switch on the different types of messages or return original if not recognized

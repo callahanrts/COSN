@@ -1,13 +1,52 @@
 Cody Callahan
 View this readme here to view it with optimal formatting https://github.com/callahanrts/COSN
 
-Client-Server / P2P project for a networkin course
-
 To start a client:
 ```
 cd client
 python client.py HOST PORT USERNAME
 ```
+
+# Part 2
+To Start: 
+- Start a client
+- Copy dropbox url to browser
+- Accept dropbox permissions
+- Paste code into window and click Link Account
+
+Do this for 3 users
+
+Note: I have an error somewhere and you may need to restart all of the clients after linking the dropbox accounts
+
+To Become Friends: 
+- Enter UserB's email in UserA's window and click Give Permission
+- Enter URL from email into window and click accept
+- The two users should now be friends
+
+Note: I have another error here. You should restart each of the clients again. 
+
+To Get a user's profile: 
+- Select UserB's name from UserA's friend list
+- Select Get Profile
+
+This will take some time because of the mp3 file. The window will also look like it's going to crash but that's just because I didn't have time to set up this function in a separate thread. The content files will be stored in "users/USERNAME/friends/FRIENDS_NAME/content/"
+
+- Delete a couple of the txt files from "users/USERNAME/friends/FRIENDS_NAME/content/"
+- Run the get profile command again
+
+The request will take much less time because it is only retrieving the files that it doesn't currently have. If you left the .mp3 file in the folder, you will see a significant difference in download times because the .mp3 file was not downloaded. 
+
+To Chat: 
+- Be sure that one user is friends with the other two users. There doesn't need to be any more friend connections than this
+- Select UserA from both UserB and UserC's windows
+- Put some text in the message field and click send chat
+- To return a message from UserA, select the receiver from UserA's friend list, enter message and click send message
+
+Note: These are 1 to 1 chat messages between UserA and the other users. I just didn't have time to pop up 2 chat windows for UserA to reply to each friend separately. 
+
+# Part 1
+
+Client-Server / P2P project for a networkin course
 
 To start the server:
 ```
