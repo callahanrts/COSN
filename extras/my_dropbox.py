@@ -142,7 +142,7 @@ class Dropbox(object):
     loc = self.get_location(friend)
     return {
       "username": friend, 
-      "host": loc["address"]["ID"], 
+      "host": loc["address"]["IP"], 
       "port": loc["address"]["port"]
     }
 

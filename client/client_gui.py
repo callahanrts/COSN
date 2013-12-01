@@ -25,6 +25,7 @@ class MainWindow(object):
     self.auth_code    = StringVar()
     self.email        = StringVar()
     self.friend_url   = StringVar()
+    self.filename     = StringVar()
 
     # Set initial command values
     self.username.set(u"Friend")
@@ -41,6 +42,15 @@ class MainWindow(object):
 
     self.gb.createMenuButton(self.username, friends, frame).grid(row=0, column=0)
     self.gb.createButton(u"Get Profile", lambda: peer_command("PROFILE", self.username.get()), frame).grid(row=0, column=1)    
+
+  def add_file_elements(self, file_command):
+    self.gb.createLabel(u"Request File From Friend", self.root).pack()
+    frame = self.gb.createFrame(self.root)
+    frame.pack()
+
+    # Chat input and send button
+    self.gb.createInput(self.filename, frame).pack(side=LEFT)
+    self.gb.createButton(u"Get File", lambda: file_command(self.filename.get(), self.username.get()), frame).pack(side=RIGHT)    
 
   def add_chat_elements(self, chat_command):
     # Chat message label
@@ -69,7 +79,7 @@ class MainWindow(object):
     frame.pack()
 
     # Auth code label
-    self.gb.createLabel(u"Google Drive Auth Code", frame).pack()
+    self.gb.createLabel(u"Dropbox Auth Code", frame).pack()
 
     # Google Drive auth code input
     self.gb.createInput(self.auth_code, frame).pack(side = LEFT)

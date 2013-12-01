@@ -71,6 +71,7 @@ class Client(object):
     # Create GUI
     self.view = MainWindow(self.username, self.shutdown)
     self.view.add_command_elements(self.peer_command_handler, f_list)
+    self.view.add_file_elements(self.get_file)
     self.view.add_chat_elements(self.chat_command)
     self.view.add_log_box()
     self.view.add_drive_elements(self.link_dropbox)
@@ -90,6 +91,38 @@ class Client(object):
     listener.start()
 
     self.view.start()
+
+  def get_file(self, filename, username):
+    # Create socket to connect with a user
+    self.chat_conn = socket(AF_INET, SOCK_STREAM)
+    send_message = self.clientcmd.request_file(filename)
+
+    try:
+      for friend in self.friends:
+        if friend["username"] == username:
+          self.chat_conn.connect((friend["host"], friend["port"]))
+      self.chat_conn.send(pickle.dumps(send_message)) 
+      response = self.retrieve_data()
+      self.save_file(response)
+
+    except: # log errors
+      logging.exception("hm")
+
+    self.chat_conn.close()
+
+    return
+
+  def save_file(self, data):
+    # Set directory or create if needed
+    directory = "../users/"+self.username+"/friends/files/"
+    self.create_dir_if_not_exists(directory)
+
+    if data[1] != 0:  # Create File
+      f = open(directory+data[1], "wb")
+      f.write(data[3])
+      f.close()
+    else: 
+      self.view.log(data)
 
   def setup_client_directories(self):
     # Create Directories if they don't exist
@@ -196,7 +229,7 @@ class Client(object):
         str = f.read()
         send_message = self.clientcmd.send_file(message[1], size, str)
       except:
-        send_message = u"File does not exist"
+        send_message = ["File does not exist", 0]
       return pickle.dumps(send_message) # Send requested file
 
     elif message[0] == u"PING":
